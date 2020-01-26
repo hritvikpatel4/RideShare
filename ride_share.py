@@ -46,22 +46,22 @@ def removeUserFail():
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
 	parameters = request.get_json()
-	if "created_by" in parameter.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
-		#check db for the username using parameters["created_by"]
-		if #exists in db:
+	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
+		query1 = "SELECT * from UserDetails WHERE username='{}';".format(parameters["created_by"])
+		rows = readDB(query1)
+		if len(rows):
 			# implement the create ride operation on db
-			answer = make_response("", 200)
-			return answer
-
+			query2 = "INSERT INTO RideDetails VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"])
+			modifyDB(query2)
+			answer = make_response("Ride successfully created", 200)
 		else:
 			# invalid username
-			answer = make_response("", 405)
-			return answer
-
+			answer = make_response("Cannot create ride as user does not exist. Please create a user before creating ride", 405)
 	else:
 		#wrong api call
 		answer = make_response("", 400)
-		return answer
+	
+	return answer
 '''
 # API 4: List all upcoming rides for a given source and destination
 @ride_share.route("/api/v1/rides?source=<source>&destination=<destination>", methods=["GET"])
