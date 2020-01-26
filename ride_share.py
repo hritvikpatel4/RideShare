@@ -1,5 +1,6 @@
-from flask import Flask, render_template, jsonify, request, abort, make_response # Response can be used to modify the header of the response message
-
+from flask import Flask, jsonify, request, make_response 
+import mysql.connector
+from mysql.connector import Error
 
 ride_share = Flask(__name__)
 
@@ -11,14 +12,17 @@ def addUser():
 	#checking for a valid json request
 	if "username" in parameters.keys() and "password" in parameters.keys():
 		
-		# TODO: Modify this to check if username is present in the database.
-		if #check in db if the new requested user exists:
-			answer = make_response("", 405)
+		# Check if username is present in the database.
+		query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
+		rows = readDB(query)
+		if len(rows):
+			answer = make_response("User name already exists", 405)
 		
 		# All the checks are done and now return a 201 code (record created).
 		else:
-			answer = make_response("", 201)
-			# TODO: call the API to insert the value.
+			query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
+			modifyDB(query)
+			answer = make_response("User name inserted into the table", 201)
 	
 	# if not present, raise a "bad request error". (Error code = 400)
 	else:
@@ -28,8 +32,12 @@ def addUser():
 # API 2: to delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
-	# TODO: modify the below statement to check if the username is in the database.
-	if username == "UserName":
+	# Check if username is present in the database.
+	query = "SELECT * from UserDetails WHERE username='{}';".format(username)
+	rows = readDB(query)
+	if len(rows):
+		query = "DELETE FROM UserDetails WHERE username='{}';".format(username)
+		modifyDB(query)
 		answer = make_response("", 200)
 		# TODO: call the API to delete the username in the database.
 	
@@ -44,12 +52,13 @@ def removeUserFail():
 	answer = make_response("", 400)
 	return answer
 
+'''
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
 	parameters = request.get_json()
-	if "created_by", "timestamp", "source", "destination" in parameters.keys():
-		
+	# if "created_by", "timestamp", "source", "destination" in parameters.keys():
+	if True:	
 		#check db for the username using parameters["created_by"]
 		if #exists in db:
 			# implement the create ride operation on db
@@ -136,6 +145,38 @@ def deleteRide(rideId):
 	else:
 		answer = make_response("", 400)
 		return answer
+'''
+
+# A function to connect the program to a mysql server
+def connectDB(user, pwd, db):
+	conn = None
+	try:
+		conn = mysql.connector.connect(host='localhost', user=user, database=db, password=pwd)
+	except Error as e:
+		print(e)
+	return conn
+
+# API 8: API to modify (insert or delete) values from database
+@ride_share.route("/api/v1/db/write", methods=["POST"])
+def modifyDB(SQLQuery):
+	conn = connectDB('root', '', 'ride_share')
+	cursor = conn.cursor()
+	cursor.execute(SQLQuery)
+	conn.commit()
+	cursor.close()
+	conn.close()
+
+#API 9: API to read values from database
+@ride_share.route("/api/v1/db/read")
+def readDB(SQLQuery):
+	conn = connectDB('root', '', 'ride_share')
+	cursor = conn.cursor()
+	cursor.execute(SQLQuery)
+	rows = cursor.fetchall()
+	cursor.close()
+	conn.close()
+	print(rows)
+	return rows
 
 if __name__ == '__main__':	
 	ride_share.debug=True
