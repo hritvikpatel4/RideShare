@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, make_response 
-import mysql.connector
+import mysql.connector, csv, uuid
 from mysql.connector import Error
-import csv
+
 ride_share = Flask(__name__)
 
 #function to get area num from csv given an index (area with serial number= input_ number-1)
@@ -17,7 +17,6 @@ def get_area_from_number(a):
                     return row[1]
             line_count+=1
         return "error"
-        
 
 # API 1: To add a new user to the database.
 @ride_share.route("/api/v1/users", methods=["PUT"])
@@ -66,7 +65,8 @@ def newRide():
 		rows = readDB(query1)
 		if len(rows):
 			# implement the create ride operation on db
-			query2 = "INSERT INTO RideDetails VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"])
+			rideid = uuid.uuid4()
+			query2 = "INSERT INTO RideDetails VALUES ('{}', '{}', '{}', '{}', '{}');".format(rideid, parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"])
 			modifyDB(query2)
 			answer = make_response("Ride successfully created", 200)
 		else:
@@ -95,24 +95,25 @@ def listRides(source, destination):
 	else:
 		answer = make_response("", 400)
 		return answer
-
+'''
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
 def rideDetails(rideId):
 	if rideId:
-
-		if #check rideid in db:
+		query1 = "SELECT * FROM RideDetails WHERE rideid='{}';".format(rideId)
+		rows = readDB(query1)
+		if len(rows):
 			answer = make_response("", 200)
 			return answer
 
 		else:
-			answer = make_response("", 405)
+			answer = make_response("Given ride doesn't exist", 405)
 			return answer
 
 	else:
 		answer = make_response("", 400)
 		return answer
-
+'''
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
@@ -130,7 +131,7 @@ def joinRide(rideId):
 	else:
 		answer = make_response("", 400)
 		return answer
-
+'''
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
@@ -148,7 +149,7 @@ def deleteRide(rideId):
 	else:
 		answer = make_response("", 400)
 		return answer
-'''
+
 
 # A function to connect the program to a mysql server
 def connectDB(user, pwd, db):
