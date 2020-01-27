@@ -1,8 +1,23 @@
 from flask import Flask, jsonify, request, make_response 
 import mysql.connector
 from mysql.connector import Error
-
+import csv
 ride_share = Flask(__name__)
+
+#function to get area num from csv given an index (area with serial number= input_ number-1)
+def get_area_from_number(a):
+    with open('AreaNameEnum.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            if line_count==0:
+                pass
+            else:
+                if line_count==a+1:
+                    return row[1]
+            line_count+=1
+        return "error"
+        
 
 # API 1: To add a new user to the database.
 @ride_share.route("/api/v1/users", methods=["PUT"])
