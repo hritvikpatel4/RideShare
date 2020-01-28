@@ -4,7 +4,7 @@ from mysql.connector import Error
 
 ride_share = Flask(__name__)
 
-#function to get area num from csv given an index (area with serial number= input_ number-1)
+#function to get area num from csv given an index (area with serial number= input_ number+1)
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
