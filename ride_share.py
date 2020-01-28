@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, make_response 
-import mysql.connector, csv, uuid
+import mysql.connector, csv
 from mysql.connector import Error
 
 ride_share = Flask(__name__)
@@ -59,14 +59,18 @@ def removeUserFail():
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
+	# TODO: parse the source and destination enums
 	parameters = request.get_json()
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
 		query1 = "SELECT * from UserDetails WHERE username='{}';".format(parameters["created_by"])
 		rows = readDB(query1)
 		if len(rows):
 			# implement the create ride operation on db
-			rideid = uuid.uuid4()
-			query2 = "INSERT INTO RideDetails VALUES ('{}', '{}', '{}', '{}', '{}');".format(rideid, parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"])
+			date, time = parameters["timestamp"].split(":")
+			ss, mm, hh = time.split("-")
+			dd, mo, yy = date.split("-")
+			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
+			query2 = "INSERT INTO RideDetails (CreatedBy, TimeStamp, Source, Destination) VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], timestamp, parameters["source"], parameters["destination"])
 			modifyDB(query2)
 			answer = make_response("Ride successfully created", 200)
 		else:
@@ -113,43 +117,53 @@ def rideDetails(rideId):
 	else:
 		answer = make_response("", 400)
 		return answer
-'''
+
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
 	parameters = request.get_json()
 	if rideId and parameters["username"]:
+		# Check if both the ride id and username are present in the database
+		query = "SELECT RideID FROM RideDetails WHERE RideID = '{}'".format(rideId)
+		rows_ride = readDB(query)
+		# TODO: Check if the user joining to ride is actually the one who created it.
+		if not rows_ride:
+			return make_response("Invalid ride ID", 405)
+		query = "SELECT username FROM UserDetails WHERE username = '{}'".format(parameters["username"])
+		rows_user = readDB(query)
+		if not rows_user:
+			return make_response("Invalid user name", 405)
 		
-		if #check rideid and the username in the db:
-			answer = make_response("", 200)
-			return answer
-
-		else:
-			answer = make_response("", 405)
-			return answer
+		# Add the details of the user joining the ride to the RideUsers table
+		query = "INSERT INTO RideUsers VALUES ({}, '{}')".format(rideId, parameters["username"])
+		modifyDB(query)
+		answer = make_response("Joined ride successfully", 200)
+		return answer
 	
 	else:
 		answer = make_response("", 400)
 		return answer
-'''
+
+
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
 	if rideId:
-
-		if #check rideId in db:
-
-			answer = make_response("", 200)
+		query = "SELECT RideID FROM RideDetails WHERE RideID = '{}'".format(rideId)
+		rows_ride = readDB(query)
+		if rows_ride:
+			query = "DELETE FROM RideDetails WHERE RideID = '{}'".format(rideId)
+			modifyDB(query)
+			answer = make_response("Ride deleted", 200)
 			return answer
 		
 		else:
-			answer = make_response("", 405)
+			answer = make_response("Ride doesn't exist!", 405)
 			return answer
 	
 	else:
-		answer = make_response("", 400)
+		answer = make_response("Invalid request", 400)
 		return answer
-
 
 # A function to connect the program to a mysql server
 def connectDB(user, pwd, db):
@@ -179,7 +193,6 @@ def readDB(SQLQuery):
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
-	print(rows)
 	return rows
 
 if __name__ == '__main__':	
