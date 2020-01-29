@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, make_response 
+from flask import Flask, jsonify, request, make_response, abort
 import mysql.connector, csv, requests
 from mysql.connector import Error
 import string
@@ -27,14 +27,12 @@ def addUser():
 		for i in range(len(parameters["password"])):
 			if parameters["password"][i] != string.hexdigits:
 				answer = make_response("400 Bad Syntax", 400)
-		#query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
-		#rows = readDB(query)
-		r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", json={"column":["username"], "table":["UserDetails"], "arg":["username='"+parameters['username']+"'"]})
+		r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", data={"column":["username"], "table":["UserDetails"], "arg":["username='"+parameters['username']+"'"]})
 		if r1.status_code == 200:
 			answer = make_response("400 User already exists", 400)
 		else:
-			#query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
-			r2 = requests.post("http://127.0.0.1:5000/api/v1/db/write", json={"column":["username", "password"], "table":"UserDetails", "arg":[parameters['username'], parameters['password']]})
+			r2 = requests.post("http://127.0.0.1:5000/api/v1/db/write", data={"column":["username", "password"], "table":"UserDetails", "arg":[parameters['username'], parameters['password']]})
+			print(r2)
 			answer = make_response("201 New user added", 201)
 	else:
 		answer = make_response("400 Bad Syntax", 400)
@@ -44,21 +42,15 @@ def addUser():
 # API 2: to delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
-	query = "SELECT * from UserDetails WHERE username='{}';".format(username)
-	rows = readDB(query)
-	if len(rows):
+	#query = "SELECT * from UserDetails WHERE username='{}';".format(username)
+	r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", data={"column":["username"], "table":["UserDetails"], "arg":["username='"+username+"'"]})
+	if r1.status_code == 200:
 		query = "DELETE FROM UserDetails WHERE username='{}';".format(username)
-		modifyDB(query)
-		answer = make_response("User removed", 200)
+		deleteDB(query)
+		answer = make_response("200 User removed", 200)
 	else:
-		answer = make_response("Invalid user", 405)
+		answer = make_response("400 Invalid user", 400)
 	
-	return answer
-
-# API 2: to delete an existing user from the database.
-@ride_share.route("/api/v1/users/", methods=["DELETE"])
-def removeUserFail():
-	answer = make_response("", 400)
 	return answer
 
 # API 3: create a new ride
@@ -77,13 +69,13 @@ def newRide():
 			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
 			query2 = "INSERT INTO RideDetails (created_by, timestamp, source, destination) VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], timestamp, parameters["source"], parameters["destination"])
 			modifyDB(query2)
-			answer = make_response("Ride successfully created", 200)
+			answer = make_response("200 Ride successfully created", 200)
 		else:
 			# invalid username
-			answer = make_response("Cannot create ride as user does not exist. Please create a user before creating ride", 405)
+			answer = make_response("400 Cannot create ride as user does not exist. Please create a user before creating ride", 400)
 	else:
 		#wrong api call
-		answer = make_response("", 400)
+		answer = make_response("400 Bad Syntax", 400)
 	
 	return answer
 '''
@@ -206,15 +198,17 @@ def writeDB():
 		if i == len(arg)-1:
 			SQLQuery += str(arg[i])
 	SQLQuery += ");"
-
+	print(SQLQuery)
 	cursor.execute(SQLQuery)
 	conn.commit()
 	cursor.close()
 	conn.close()
+	answer = make_response("", 200)
+	return answer
 
 #API 9: API to read values from database
 @ride_share.route("/api/v1/db/read")
-def readDB(SQLQuery):
+def readDB():
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
 	cols = request.get_json()["column"]
@@ -240,12 +234,13 @@ def readDB(SQLQuery):
 		if i == len(tables)-1:
 			SQLQuery += str(cond[i])
 	SQLQuery += ";"
-
+	print(SQLQuery)
 	cursor.execute(SQLQuery)
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
-	return rows
+	answer = make_response(rows, 200)
+	return answer
 
 def deleteDB(SQLQuery):
 	conn = connectDB('root', '', 'ride_share')
