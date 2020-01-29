@@ -1,5 +1,5 @@
-from flask import Flask, jsonify, request, make_response, abort
-import mysql.connector, csv, requests
+from flask import Flask, jsonify, request, make_response
+import mysql.connector, csv
 from mysql.connector import Error
 import string
 
@@ -27,12 +27,13 @@ def addUser():
 		for i in range(len(parameters["password"])):
 			if parameters["password"][i] != string.hexdigits:
 				answer = make_response("400 Bad Syntax", 400)
-		r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", data={"column":["username"], "table":["UserDetails"], "arg":["username='"+parameters['username']+"'"]})
-		if r1.status_code == 200:
+		query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
+		rows = readDB(query)
+		if len(rows):
 			answer = make_response("400 User already exists", 400)
 		else:
-			r2 = requests.post("http://127.0.0.1:5000/api/v1/db/write", data={"column":["username", "password"], "table":"UserDetails", "arg":[parameters['username'], parameters['password']]})
-			print(r2)
+			query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
+			modifyDB(query)
 			answer = make_response("201 New user added", 201)
 	else:
 		answer = make_response("400 Bad Syntax", 400)
@@ -42,11 +43,11 @@ def addUser():
 # API 2: to delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
-	#query = "SELECT * from UserDetails WHERE username='{}';".format(username)
-	r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", data={"column":["username"], "table":["UserDetails"], "arg":["username='"+username+"'"]})
-	if r1.status_code == 200:
+	query = "SELECT * from UserDetails WHERE username='{}';".format(username)
+	rows = readDB(query)
+	if len(rows):
 		query = "DELETE FROM UserDetails WHERE username='{}';".format(username)
-		deleteDB(query)
+		modifyDB(query)
 		answer = make_response("200 User removed", 200)
 	else:
 		answer = make_response("400 Invalid user", 400)
@@ -103,16 +104,24 @@ def rideDetails(rideId):
 	if rideId:
 		query1 = "SELECT * FROM RideDetails WHERE rideid='{}';".format(rideId)
 		query2 = "SELECT username FROM RideUsers WHERE rideid='{}';".format(rideId)
-		rows = readDB(query1)
-		rows2 = readDB(query2)
-		if len(rows):
-			temp = rows[1]
-			rows[1] = list()
-			rows[1].append(temp)
-			for i in range(len(rows2)):
-				rows[1].append(rows2[i])
-			answer = make_response("", 200)
-			return jsonify(rows)
+		r1 = readDB(query1)
+		r2 = readDB(query2)
+		d = {}
+		d["rideId"] = str(r1[0])
+		d["created_by"] = r1[1]
+		d["users"] = []
+		d["Timestamp"] = str(r1[2])
+		d["source"] = str(r1[3])
+		d["destination"] = str(r1[4])
+		if len(r1):
+			if len(r2):
+				for i in range(len(r2)):
+					d["users"].append(str(r2[i]))
+				answer = make_response("", 200)
+				return jsonify(d), answer
+			else:
+				answer = make_response("", 200)
+				return jsonify(d), answer
 		else:
 			answer = make_response("400 Bad Request", 400)
 	else:
@@ -130,16 +139,16 @@ def joinRide(rideId):
 		rows_ride = readDB(query)
 		# TODO: Check if the user joining to ride is actually the one who created it.
 		if not rows_ride:
-			return make_response("Invalid ride ID", 405)
+			return make_response("400 Invalid ride ID", 400)
 		query = "SELECT username FROM UserDetails WHERE username = '{}'".format(parameters["username"])
 		rows_user = readDB(query)
 		if not rows_user:
-			return make_response("Invalid user name", 405)
+			return make_response("400 Invalid user name", 400)
 		
 		# Add the details of the user joining the ride to the RideUsers table
 		query = "INSERT INTO RideUsers VALUES ({}, '{}')".format(rideId, parameters["username"])
 		modifyDB(query)
-		answer = make_response("Joined ride successfully", 200)
+		answer = make_response("200 Joined ride successfully", 200)
 		return answer
 	
 	else:
@@ -155,7 +164,7 @@ def deleteRide(rideId):
 		rows_ride = readDB(query)
 		if rows_ride:
 			query = "DELETE FROM RideDetails WHERE RideID = '{}'".format(rideId)
-			deleteDB(query)
+			modifyDB(query)
 			answer = make_response("Ride deleted", 200)
 			return answer
 		
@@ -178,77 +187,24 @@ def connectDB(user, pwd, db):
 
 # API 8: API to modify (insert or delete) values from database
 @ride_share.route("/api/v1/db/write", methods=["POST"])
-def writeDB():
+def modifyDB(SQLQuery):
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
-	cols = request.get_json()["column"]
-	table = request.get_json()["table"]
-	arg = request.get_json()["arg"]
-
-	SQLQuery = "INSERT INTO " + str(table) + "("
-	for i in range(len(cols)):
-		if i < len(cols)-1:
-			SQLQuery += str(cols[i]) + ","
-		if i == len(cols)-1:
-			SQLQuery += str(cols[i])
-	SQLQuery += ") VALUES ("
-	for i in range(len(arg)):
-		if i < len(arg)-1:
-			SQLQuery += str(arg[i]) + ","
-		if i == len(arg)-1:
-			SQLQuery += str(arg[i])
-	SQLQuery += ");"
-	print(SQLQuery)
 	cursor.execute(SQLQuery)
 	conn.commit()
 	cursor.close()
 	conn.close()
-	answer = make_response("", 200)
-	return answer
 
 #API 9: API to read values from database
 @ride_share.route("/api/v1/db/read")
-def readDB():
+def readDB(SQLQuery):
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
-	cols = request.get_json()["column"]
-	tables = request.get_json()["table"]
-	cond = request.get_json()["arg"]
-
-	SQLQuery = "SELECT "
-	for i in range(len(cols)):
-		if i < len(cols)-1:
-			SQLQuery += str(cols[i]) + ","
-		if i == len(cols)-1:
-			SQLQuery += str(cols[i])
-	SQLQuery += " FROM "
-	for i in range(len(tables)):
-		if i < len(tables)-1:
-			SQLQuery += str(tables[i]) + ","
-		if i == len(tables)-1:
-			SQLQuery += str(tables[i])
-	SQLQuery += " WHERE "
-	for i in range(len(cond)):
-		if i < len(cond)-1:
-			SQLQuery += str(cond[i]) + ","
-		if i == len(tables)-1:
-			SQLQuery += str(cond[i])
-	SQLQuery += ";"
-	print(SQLQuery)
 	cursor.execute(SQLQuery)
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
-	answer = make_response(rows, 200)
-	return answer
-
-def deleteDB(SQLQuery):
-	conn = connectDB('root', '', 'ride_share')
-	cursor = conn.cursor()
-	cursor.execute(SQLQuery)
-	conn.commit()
-	cursor.close()
-	conn.close()
+	return rows
 
 if __name__ == '__main__':
 	ride_share.run(debug=True)
