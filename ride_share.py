@@ -23,32 +23,40 @@ def get_area_from_number(a):
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
 	parameters = request.get_json()	
+	
 	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
+		
 		for i in range(len(parameters["password"])):
 			if parameters["password"][i] != string.hexdigits:
 				answer = make_response("400 Bad Syntax", 400)
+		
 		query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
 		rows = readDB(query)
+		
 		if len(rows):
 			answer = make_response("400 User already exists", 400)
+		
 		else:
 			query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
 			modifyDB(query)
 			answer = make_response("201 New user added", 201)
+	
 	else:
 		answer = make_response("400 Bad Syntax", 400)
 	
 	return answer
 
-# API 2: to delete an existing user from the database.
+# API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
 	query = "SELECT * from UserDetails WHERE username='{}';".format(username)
 	rows = readDB(query)
+
 	if len(rows):
 		query = "DELETE FROM UserDetails WHERE username='{}';".format(username)
 		modifyDB(query)
 		answer = make_response("200 User removed", 200)
+	
 	else:
 		answer = make_response("400 Invalid user", 400)
 	
@@ -57,13 +65,12 @@ def removeUser(username):
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
-	# TODO: parse the source and destination enums
 	parameters = request.get_json()
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
 		query1 = "SELECT * from UserDetails WHERE username='{}';".format(parameters["created_by"])
 		rows = readDB(query1)
+		
 		if len(rows):
-			# implement the create ride operation on db
 			date, time = parameters["timestamp"].split(":")
 			ss, mm, hh = time.split("-")
 			dd, mo, yy = date.split("-")
@@ -71,11 +78,11 @@ def newRide():
 			query2 = "INSERT INTO RideDetails (created_by, timestamp, source, destination) VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], timestamp, parameters["source"], parameters["destination"])
 			modifyDB(query2)
 			answer = make_response("200 Ride successfully created", 200)
+		
 		else:
-			# invalid username
 			answer = make_response("400 Cannot create ride as user does not exist. Please create a user before creating ride", 400)
+	
 	else:
-		#wrong api call
 		answer = make_response("400 Bad Syntax", 400)
 	
 	return answer
@@ -111,19 +118,26 @@ def rideDetails(rideId):
 		d["created_by"] = r1[1]
 		d["users"] = []
 		d["Timestamp"] = str(r1[2])
-		d["source"] = str(r1[3])
-		d["destination"] = str(r1[4])
+		s = get_area_from_number(int(r1[3]))
+		d["source"] = str(s)
+		d = get_area_from_number(int(r1[4]))
+		d["destination"] = str(d)
+		
 		if len(r1):
+			
 			if len(r2):
 				for i in range(len(r2)):
 					d["users"].append(str(r2[i]))
 				answer = make_response("", 200)
 				return jsonify(d), answer
+			
 			else:
 				answer = make_response("", 200)
 				return jsonify(d), answer
+		
 		else:
 			answer = make_response("400 Bad Request", 400)
+	
 	else:
 		answer = make_response("400 Bad Syntax", 400)
 	
@@ -135,15 +149,22 @@ def joinRide(rideId):
 	parameters = request.get_json()
 	if rideId and parameters["username"]:
 		# Check if both the ride id and username are present in the database
-		query = "SELECT RideID FROM RideDetails WHERE RideID = '{}'".format(rideId)
+		query = "SELECT rideId FROM RideDetails WHERE RideID = '{}'".format(rideId)
 		rows_ride = readDB(query)
-		# TODO: Check if the user joining to ride is actually the one who created it.
-		if not rows_ride:
-			return make_response("400 Invalid ride ID", 400)
 		query = "SELECT username FROM UserDetails WHERE username = '{}'".format(parameters["username"])
 		rows_user = readDB(query)
+		
+		# Check if the user joining to ride is actually the one who created it.
+		query = "SELECT created_by FROM RideDetails WHERE rideid = '{}';".format(rideId)
+		verify_user = readDB(query)
+		if parameters["username"] == verify_user:
+			return make_response("400 You cannot join a ride which you created", 400)
+		
+		if not rows_ride:
+			return make_response("400 Invalid ride ID", 400)
+		
 		if not rows_user:
-			return make_response("400 Invalid user name", 400)
+			return make_response("400 Invalid username", 400)
 		
 		# Add the details of the user joining the ride to the RideUsers table
 		query = "INSERT INTO RideUsers VALUES ({}, '{}')".format(rideId, parameters["username"])
@@ -152,7 +173,7 @@ def joinRide(rideId):
 		return answer
 	
 	else:
-		answer = make_response("", 400)
+		answer = make_response("400 Bad Syntax", 400)
 		return answer
 
 
