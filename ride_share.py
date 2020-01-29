@@ -1,11 +1,23 @@
+#TODO [NEEDS TO BE DONE ASAP]
+# 1. API 4 -> Complete it
+# 2. API 5 -> Sort the dictionary before giving as response. Tried doing something in lines 148-149 and lines 153-154
+# 3. API 6 -> Control never reaches lines 169-172 even though i give the username to be joined same as the one 
+# 			  who created ride. It should actually return an error but instead always goes to line 177
+
+#APIs completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
+# 1. API 1
+# 2. API 2
+# 3. API 3
+# 4. API 7
+# 5. API 8
+# 6. API 9
+
 from flask import Flask, jsonify, request, make_response
-import mysql.connector, csv
+import mysql.connector, csv, string, collections
 from mysql.connector import Error
-import string
 
 ride_share = Flask(__name__)
 
-#function to get area num from csv given an index (area with serial number= input_ number+1)
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -23,7 +35,7 @@ def get_area_from_number(a):
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
 	parameters = request.get_json()	
-	
+
 	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
 		
 		for i in range(len(parameters["password"])):
@@ -66,6 +78,7 @@ def removeUser(username):
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
 	parameters = request.get_json()
+
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
 		query1 = "SELECT * from UserDetails WHERE username='{}';".format(parameters["created_by"])
 		rows = readDB(query1)
@@ -113,27 +126,32 @@ def rideDetails(rideId):
 		query2 = "SELECT username FROM RideUsers WHERE rideid='{}';".format(rideId)
 		r1 = readDB(query1)
 		r2 = readDB(query2)
+		
 		d = {}
-		d["rideId"] = str(r1[0])
-		d["created_by"] = r1[1]
+		d["rideId"] = str(r1[0][0])
+		d["created_by"] = r1[0][1]
 		d["users"] = []
-		d["Timestamp"] = str(r1[2])
-		s = get_area_from_number(int(r1[3]))
-		d["source"] = str(s)
-		d = get_area_from_number(int(r1[4]))
-		d["destination"] = str(d)
+		date, time = r1[0][2].split(" ")
+		hh, mm, ss = time.split(":")
+		yy, mo, dd = date.split("-")
+		t = "{}-{}-{}:{}-{}-{}".format(dd, mo, yy, ss, mm, hh)
+		d["Timestamp"] = t
+		d["source"] = str(get_area_from_number(int(r1[0][3])))
+		d["destination"] = str(get_area_from_number(int(r1[0][4])))
 		
 		if len(r1):
 			
 			if len(r2):
 				for i in range(len(r2)):
-					d["users"].append(str(r2[i]))
-				answer = make_response("", 200)
-				return jsonify(d), answer
+					d["users"].append(str(r2[i][0]))
+				#od = collections.OrderedDict(sorted(d.items()))
+				#return od
+				return d
 			
 			else:
-				answer = make_response("", 200)
-				return jsonify(d), answer
+				#od = collections.OrderedDict(sorted(d.items()))
+				#return od
+				return d
 		
 		else:
 			answer = make_response("400 Bad Request", 400)
@@ -147,26 +165,23 @@ def rideDetails(rideId):
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
 	parameters = request.get_json()
-	if rideId and parameters["username"]:
-		# Check if both the ride id and username are present in the database
-		query = "SELECT rideId FROM RideDetails WHERE RideID = '{}'".format(rideId)
+
+	if rideId and parameters["username"] and "username" in parameters.keys():
+		query = "SELECT rideId FROM RideDetails WHERE rideid = '{}';".format(rideId)
 		rows_ride = readDB(query)
-		query = "SELECT username FROM UserDetails WHERE username = '{}'".format(parameters["username"])
-		rows_user = readDB(query)
-		
-		# Check if the user joining to ride is actually the one who created it.
-		query = "SELECT created_by FROM RideDetails WHERE rideid = '{}';".format(rideId)
-		verify_user = readDB(query)
-		if parameters["username"] == verify_user:
-			return make_response("400 You cannot join a ride which you created", 400)
-		
 		if not rows_ride:
 			return make_response("400 Invalid ride ID", 400)
 		
+		query = "SELECT username FROM UserDetails WHERE username = '{}';".format(parameters["username"])
+		rows_user = readDB(query)
 		if not rows_user:
 			return make_response("400 Invalid username", 400)
 		
-		# Add the details of the user joining the ride to the RideUsers table
+		query = "SELECT created_by FROM RideDetails WHERE rideid = '{}';".format(rideId)
+		verify_user = readDB(query)
+		if parameters["username"] == verify_user[0]:
+			return make_response("400 Cannot join a ride created by yourself", 400)
+		
 		query = "INSERT INTO RideUsers VALUES ({}, '{}')".format(rideId, parameters["username"])
 		modifyDB(query)
 		answer = make_response("200 Joined ride successfully", 200)
@@ -181,20 +196,21 @@ def joinRide(rideId):
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
 	if rideId:
-		query = "SELECT RideID FROM RideDetails WHERE RideID = '{}'".format(rideId)
+		query = "SELECT RideID FROM RideDetails WHERE RideID = '{}';".format(rideId)
 		rows_ride = readDB(query)
+
 		if rows_ride:
-			query = "DELETE FROM RideDetails WHERE RideID = '{}'".format(rideId)
+			query = "DELETE FROM RideDetails WHERE RideID = '{}';".format(rideId)
 			modifyDB(query)
-			answer = make_response("Ride deleted", 200)
+			answer = make_response("200 Ride deleted", 200)
 			return answer
 		
 		else:
-			answer = make_response("Ride doesn't exist!", 405)
+			answer = make_response("400 Ride doesn't exist!", 400)
 			return answer
 	
 	else:
-		answer = make_response("Invalid request", 400)
+		answer = make_response("400 Invalid request", 400)
 		return answer
 
 # A function to connect the program to a mysql server
