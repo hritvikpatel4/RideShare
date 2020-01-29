@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, make_response 
-import mysql.connector, csv
+import mysql.connector, csv, requests
 from mysql.connector import Error
+import string
 
 ride_share = Flask(__name__)
 
@@ -22,17 +23,21 @@ def get_area_from_number(a):
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
 	parameters = request.get_json()	
-	if "username" in parameters.keys() and "password" in parameters.keys():
-		query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
-		rows = readDB(query)
-		if len(rows):
-			answer = make_response("User already exists", 405)
+	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
+		for i in range(len(parameters["password"])):
+			if parameters["password"][i] != string.hexdigits:
+				answer = make_response("400 Bad Syntax", 400)
+		#query = "SELECT * from UserDetails WHERE username='{}';".format(parameters["username"])
+		#rows = readDB(query)
+		r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", json={"column":["username"], "table":["UserDetails"], "arg":["username='"+parameters['username']+"'"]})
+		if r1.status_code == 200:
+			answer = make_response("400 User already exists", 400)
 		else:
-			query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
-			modifyDB(query)
-			answer = make_response("New user added", 201)
+			#query = "INSERT INTO UserDetails VALUES ('{}', '{}');".format(parameters["username"], parameters["password"])
+			r2 = requests.post("http://127.0.0.1:5000/api/v1/db/write", json={"column":["username", "password"], "table":"UserDetails", "arg":[parameters['username'], parameters['password']]})
+			answer = make_response("201 New user added", 201)
 	else:
-		answer = make_response("", 400)
+		answer = make_response("400 Bad Syntax", 400)
 	
 	return answer
 
@@ -70,7 +75,7 @@ def newRide():
 			ss, mm, hh = time.split("-")
 			dd, mo, yy = date.split("-")
 			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
-			query2 = "INSERT INTO RideDetails (CreatedBy, TimeStamp, Source, Destination) VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], timestamp, parameters["source"], parameters["destination"])
+			query2 = "INSERT INTO RideDetails (created_by, timestamp, source, destination) VALUES ('{}', '{}', '{}', '{}');".format(parameters["created_by"], timestamp, parameters["source"], parameters["destination"])
 			modifyDB(query2)
 			answer = make_response("Ride successfully created", 200)
 		else:
@@ -105,18 +110,23 @@ def listRides(source, destination):
 def rideDetails(rideId):
 	if rideId:
 		query1 = "SELECT * FROM RideDetails WHERE rideid='{}';".format(rideId)
+		query2 = "SELECT username FROM RideUsers WHERE rideid='{}';".format(rideId)
 		rows = readDB(query1)
+		rows2 = readDB(query2)
 		if len(rows):
+			temp = rows[1]
+			rows[1] = list()
+			rows[1].append(temp)
+			for i in range(len(rows2)):
+				rows[1].append(rows2[i])
 			answer = make_response("", 200)
-			return answer
-
+			return jsonify(rows)
 		else:
-			answer = make_response("Given ride doesn't exist", 405)
-			return answer
-
+			answer = make_response("400 Bad Request", 400)
 	else:
-		answer = make_response("", 400)
-		return answer
+		answer = make_response("400 Bad Syntax", 400)
+	
+	return answer
 
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
@@ -153,7 +163,7 @@ def deleteRide(rideId):
 		rows_ride = readDB(query)
 		if rows_ride:
 			query = "DELETE FROM RideDetails WHERE RideID = '{}'".format(rideId)
-			modifyDB(query)
+			deleteDB(query)
 			answer = make_response("Ride deleted", 200)
 			return answer
 		
@@ -176,9 +186,27 @@ def connectDB(user, pwd, db):
 
 # API 8: API to modify (insert or delete) values from database
 @ride_share.route("/api/v1/db/write", methods=["POST"])
-def modifyDB(SQLQuery):
+def writeDB():
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
+	cols = request.get_json()["column"]
+	table = request.get_json()["table"]
+	arg = request.get_json()["arg"]
+
+	SQLQuery = "INSERT INTO " + str(table) + "("
+	for i in range(len(cols)):
+		if i < len(cols)-1:
+			SQLQuery += str(cols[i]) + ","
+		if i == len(cols)-1:
+			SQLQuery += str(cols[i])
+	SQLQuery += ") VALUES ("
+	for i in range(len(arg)):
+		if i < len(arg)-1:
+			SQLQuery += str(arg[i]) + ","
+		if i == len(arg)-1:
+			SQLQuery += str(arg[i])
+	SQLQuery += ");"
+
 	cursor.execute(SQLQuery)
 	conn.commit()
 	cursor.close()
@@ -189,12 +217,43 @@ def modifyDB(SQLQuery):
 def readDB(SQLQuery):
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
+	cols = request.get_json()["column"]
+	tables = request.get_json()["table"]
+	cond = request.get_json()["arg"]
+
+	SQLQuery = "SELECT "
+	for i in range(len(cols)):
+		if i < len(cols)-1:
+			SQLQuery += str(cols[i]) + ","
+		if i == len(cols)-1:
+			SQLQuery += str(cols[i])
+	SQLQuery += " FROM "
+	for i in range(len(tables)):
+		if i < len(tables)-1:
+			SQLQuery += str(tables[i]) + ","
+		if i == len(tables)-1:
+			SQLQuery += str(tables[i])
+	SQLQuery += " WHERE "
+	for i in range(len(cond)):
+		if i < len(cond)-1:
+			SQLQuery += str(cond[i]) + ","
+		if i == len(tables)-1:
+			SQLQuery += str(cond[i])
+	SQLQuery += ";"
+
 	cursor.execute(SQLQuery)
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
 	return rows
 
-if __name__ == '__main__':	
-	ride_share.debug=True
-	ride_share.run()
+def deleteDB(SQLQuery):
+	conn = connectDB('root', '', 'ride_share')
+	cursor = conn.cursor()
+	cursor.execute(SQLQuery)
+	conn.commit()
+	cursor.close()
+	conn.close()
+
+if __name__ == '__main__':
+	ride_share.run(debug=True)
