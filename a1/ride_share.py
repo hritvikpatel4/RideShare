@@ -129,29 +129,21 @@ def rideDetails(rideId):
 		
 		d = {}
 		d["rideId"] = str(r1[0][0])
-		d["created_by"] = r1[0][1]
+		d["Created_by"] = r1[0][1]
 		d["users"] = []
-		date, time = r1[0][2].split(" ")
+		date, time = str(r1[0][2]).split(" ")
 		hh, mm, ss = time.split(":")
 		yy, mo, dd = date.split("-")
-		t = "{}-{}-{}:{}-{}-{}".format(dd, mo, yy, ss, mm, hh)
-		d["Timestamp"] = t
+		d["Timestamp"] = "{}-{}-{}:{}-{}-{}".format(dd, mo, yy, ss, mm, hh)
 		d["source"] = str(get_area_from_number(int(r1[0][3])))
 		d["destination"] = str(get_area_from_number(int(r1[0][4])))
 		
 		if len(r1):
 			
 			if len(r2):
-				for i in range(len(r2)):
-					d["users"].append(str(r2[i][0]))
-				#od = collections.OrderedDict(sorted(d.items()))
-				#return od
-				return d
-			
-			else:
-				#od = collections.OrderedDict(sorted(d.items()))
-				#return od
-				return d
+				d['users'] = [x[0] for x in r2]
+		
+			return d
 		
 		else:
 			answer = make_response("400 Bad Request", 400)
@@ -177,11 +169,17 @@ def joinRide(rideId):
 		if not rows_user:
 			return make_response("400 Invalid username", 400)
 		
-		query = "SELECT created_by FROM RideDetails WHERE rideid = '{}';".format(rideId)
+		query = "SELECT CreatedBy FROM RideDetails WHERE rideid = '{}';".format(rideId)
 		verify_user = readDB(query)
 		if parameters["username"] == verify_user[0]:
 			return make_response("400 Cannot join a ride created by yourself", 400)
 		
+		query = "SELECT username FROM RideUsers WHERE rideid = '{}';".format(rideId)
+		verify_user = readDB(query)
+		verify_user = [x[0] for x in verify_user]
+		if parameters["username"] in verify_user:
+			return make_response("You have already joined the ride", 405)
+
 		query = "INSERT INTO RideUsers VALUES ({}, '{}')".format(rideId, parameters["username"])
 		modifyDB(query)
 		answer = make_response("200 Joined ride successfully", 200)
