@@ -191,7 +191,6 @@ def joinRide(rideId):
 		answer = make_response("400 Bad Syntax", 400)
 		return answer
 
-
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
