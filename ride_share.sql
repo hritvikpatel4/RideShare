@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.0.1
+-- version 4.9.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jan 30, 2020 at 02:14 AM
--- Server version: 10.4.11-MariaDB
--- PHP Version: 7.4.1
+-- Host: localhost
+-- Generation Time: Jan 30, 2020 at 11:10 AM
+-- Server version: 10.4.8-MariaDB
+-- PHP Version: 7.3.11
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
@@ -21,67 +21,78 @@ SET time_zone = "+00:00";
 --
 -- Database: `ride_share`
 --
-CREATE DATABASE IF NOT EXISTS `ride_share` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `ride_share`;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `ridedetails`
+-- Table structure for table `RideDetails`
 --
 
-CREATE TABLE `ridedetails` (
-  `rideid` int(11) NOT NULL,
-  `created_by` varchar(255) NOT NULL,
-  `timestamp` text NOT NULL,
-  `source` varchar(1000) NOT NULL,
-  `destination` varchar(1000) NOT NULL
+CREATE TABLE `RideDetails` (
+  `RideID` int(11) NOT NULL,
+  `CreatedBy` varchar(20) NOT NULL,
+  `TimeStamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Source` varchar(20) NOT NULL,
+  `Destination` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `RideDetails`
+--
+
+INSERT INTO `RideDetails` (`RideID`, `CreatedBy`, `TimeStamp`, `Source`, `Destination`) VALUES
+(3, 'prams', '2020-01-12 17:42:12', 'mg road', 'banashankari');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `RideUsers`
+--
+
+CREATE TABLE `RideUsers` (
+  `RideID` int(11) NOT NULL,
+  `username` varchar(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `rideusers`
+-- Table structure for table `UserDetails`
 --
 
-CREATE TABLE `rideusers` (
-  `rideid` int(11) NOT NULL,
-  `username` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `userdetails`
---
-
-CREATE TABLE `userdetails` (
-  `username` varchar(500) NOT NULL,
+CREATE TABLE `UserDetails` (
+  `username` varchar(20) NOT NULL,
   `password` varchar(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `UserDetails`
+--
+
+INSERT INTO `UserDetails` (`username`, `password`) VALUES
+('eminem', 'musictobemurderedby'),
+('prams', 'asdipvbawbvuiojadaos8fvhabwdnck');
 
 --
 -- Indexes for dumped tables
 --
 
 --
--- Indexes for table `ridedetails`
+-- Indexes for table `RideDetails`
 --
-ALTER TABLE `ridedetails`
-  ADD PRIMARY KEY (`rideid`),
-  ADD KEY `del_user2` (`created_by`);
+ALTER TABLE `RideDetails`
+  ADD PRIMARY KEY (`RideID`);
 
 --
--- Indexes for table `rideusers`
+-- Indexes for table `RideUsers`
 --
-ALTER TABLE `rideusers`
-  ADD KEY `link_user` (`rideid`),
-  ADD KEY `del_user` (`username`);
+ALTER TABLE `RideUsers`
+  ADD KEY `link_user` (`RideID`);
 
 --
--- Indexes for table `userdetails`
+-- Indexes for table `UserDetails`
 --
-ALTER TABLE `userdetails`
+ALTER TABLE `UserDetails`
   ADD PRIMARY KEY (`username`);
 
 --
@@ -89,27 +100,20 @@ ALTER TABLE `userdetails`
 --
 
 --
--- AUTO_INCREMENT for table `ridedetails`
+-- AUTO_INCREMENT for table `RideDetails`
 --
-ALTER TABLE `ridedetails`
-  MODIFY `rideid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+ALTER TABLE `RideDetails`
+  MODIFY `RideID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
 --
 
 --
--- Constraints for table `ridedetails`
+-- Constraints for table `RideUsers`
 --
-ALTER TABLE `ridedetails`
-  ADD CONSTRAINT `del_user2` FOREIGN KEY (`created_by`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `rideusers`
---
-ALTER TABLE `rideusers`
-  ADD CONSTRAINT `del_user` FOREIGN KEY (`username`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `link_user` FOREIGN KEY (`rideid`) REFERENCES `ridedetails` (`rideid`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `RideUsers`
+  ADD CONSTRAINT `link_user` FOREIGN KEY (`RideID`) REFERENCES `RideDetails` (`RideID`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
