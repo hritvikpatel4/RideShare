@@ -1,4 +1,4 @@
-#APIs 1, 2, 3, 7, 8, 9 completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
+#APIs 1, 2, 3, 5, 6, 7, 8, 9 completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
 
 from flask import Flask, jsonify, request, make_response
 import mysql.connector, csv, string, collections, datetime
@@ -67,11 +67,11 @@ def addUser():
 				answer = make_response("400 Bad Syntax", 400)
 		
 		data = {
-				"operation": "SELECT",
-				"columns": "*",
-				"tablename": "userdetails",
-				"where": ["username='{}'".format(parameters["username"])]
-			}
+			"operation": "SELECT",
+			"columns": "*",
+			"tablename": "userdetails",
+			"where": ["username='{}'".format(parameters["username"])]
+		}
 		rows = readDB(data)
 		
 		if len(rows):
@@ -96,11 +96,11 @@ def addUser():
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
 	data = {
-				"operation": "SELECT",
-				"columns": "*",
-				"tablename": "userdetails",
-				"where": ["username='{}'".format(username)]
-		}
+		"operation": "SELECT",
+		"columns": "*",
+		"tablename": "userdetails",
+		"where": ["username='{}'".format(username)]
+	}
 	rows = readDB(data)
 
 	if len(rows):
@@ -124,10 +124,10 @@ def newRide():
 
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
 		data = {
-				"operation": "SELECT",
-				"columns": "*",
-				"tablename": "userdetails",
-				"where": ["username='{}'".format(parameters["created_by"])]
+			"operation": "SELECT",
+			"columns": "*",
+			"tablename": "userdetails",
+			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		rows = readDB(data)
 		
@@ -140,7 +140,7 @@ def newRide():
 				"operation": "INSERT",
 				"tablename": "ridedetails",
 				"columns": ["created_by", "timestamp", "source", "destination"],
-				"values": [parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"]]
+				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
 			modifyDB(data)
 			answer = make_response("200 Ride successfully created", 200)
@@ -162,8 +162,14 @@ def listRides(source, destination):
 		d = get_area_from_number(destination)
 		now = datetime.datetime.now()
 		cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
-		query = "SELECT * FROM ridedetails WHERE CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}';".format(cur_time, s, d)
-		rows = readDB(query)
+		#query = "SELECT * FROM ridedetails WHERE CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}';".format(cur_time, s, d)
+		data = {
+			"operation": "SELECT",
+			"columns": "*",
+			"tablename": "ridedetails",
+			"where": ["CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}'".format(cur_time, s, d)]
+		}
+		rows = readDB(data)
 
 		if len(rows):
 			final=[]
@@ -189,10 +195,20 @@ def listRides(source, destination):
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
 def rideDetails(rideId):
 	if rideId:
-		query1 = "SELECT * FROM ridedetails WHERE rideid='{}';".format(rideId)
-		query2 = "SELECT username FROM rideusers WHERE rideid='{}';".format(rideId)
-		r1 = readDB(query1)
-		r2 = readDB(query2)
+		data = {
+			"operation": "SELECT",
+			"columns": "*",
+			"tablename": "ridedetails",
+			"where": ["rideid='{}'".format(rideId)]
+		}
+		r1 = readDB(data)
+		data = {
+			"operation": "SELECT",
+			"columns": ["username"],
+			"tablename": "rideusers",
+			"where": ["rideid='{}'".format(rideId)]
+		}
+		r2 = readDB(data)
 		
 		d = {}
 		d["rideId"] = str(r1[0][0])
@@ -226,7 +242,6 @@ def joinRide(rideId):
 	parameters = request.get_json()
 
 	if rideId and parameters["username"] and "username" in parameters.keys():
-		query = "SELECT rideid FROM ridedetails WHERE rideid = '{}';".format(rideId)
 		data = {
 				"operation": "SELECT",
 				"columns": ["rideid"],
@@ -276,7 +291,6 @@ def joinRide(rideId):
 				"columns": ["rideid", "username"],
 				"values": [rideId, parameters["username"]]
 		}
-		query = "INSERT INTO rideusers VALUES ('{}', '{}');".format(rideId, parameters["username"])
 		modifyDB(data)
 		
 		answer = make_response("200 Joined ride successfully", 200)
@@ -290,12 +304,21 @@ def joinRide(rideId):
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
 	if rideId:
-		query = "SELECT rideid FROM ridedetails WHERE rideid = '{}';".format(rideId)
-		rows_ride = readDB(query)
+		data = {
+				"operation": "SELECT",
+				"columns": ["rideid"],
+				"tablename": "ridedetails",
+				"where": ["rideid={}".format(rideId)]
+		}
+		rows_ride = readDB(data)
 
 		if rows_ride:
-			query = "DELETE FROM ridedetails WHERE rideid = '{}';".format(rideId)
-			modifyDB(query)
+			data = {
+				"operation": "DELETE",
+				"tablename": "ridedetails",
+				"where": ["rideid='{}'".format(rideId)]
+			}
+			modifyDB(data)
 			answer = make_response("200 Ride deleted", 200)
 			return answer
 		

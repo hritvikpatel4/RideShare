@@ -1,0 +1,8 @@
+apt nginx		-
+apt mysql-server	-
+apt speedtest-cli	-
+apt python3-pip		-
+apt emacs		-
+pip requests		-
+pip gunicorn		-
+pip flask		-
