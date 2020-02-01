@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 31, 2020 at 02:02 PM
+-- Generation Time: Feb 01, 2020 at 05:22 AM
 -- Server version: 10.4.11-MariaDB
 -- PHP Version: 7.4.1
 
@@ -38,10 +38,6 @@ CREATE TABLE `ridedetails` (
   `destination` varchar(1000) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- RELATIONSHIPS FOR TABLE `ridedetails`:
---
-
 -- --------------------------------------------------------
 
 --
@@ -53,12 +49,6 @@ CREATE TABLE `rideusers` (
   `username` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- RELATIONSHIPS FOR TABLE `rideusers`:
---   `rideid`
---       `ridedetails` -> `rideid`
---
-
 -- --------------------------------------------------------
 
 --
@@ -69,10 +59,6 @@ CREATE TABLE `userdetails` (
   `username` varchar(500) NOT NULL,
   `password` varchar(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- RELATIONSHIPS FOR TABLE `userdetails`:
---
 
 --
 -- Indexes for dumped tables
@@ -89,8 +75,8 @@ ALTER TABLE `ridedetails`
 -- Indexes for table `rideusers`
 --
 ALTER TABLE `rideusers`
-  ADD KEY `del_user` (`username`),
-  ADD KEY `link_ride` (`rideid`);
+  ADD KEY `link_ride` (`rideid`),
+  ADD KEY `del_user` (`username`);
 
 --
 -- Indexes for table `userdetails`
@@ -113,9 +99,16 @@ ALTER TABLE `ridedetails`
 --
 
 --
+-- Constraints for table `ridedetails`
+--
+ALTER TABLE `ridedetails`
+  ADD CONSTRAINT `del_user2` FOREIGN KEY (`created_by`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `rideusers`
 --
 ALTER TABLE `rideusers`
+  ADD CONSTRAINT `del_user` FOREIGN KEY (`username`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `link_ride` FOREIGN KEY (`rideid`) REFERENCES `ridedetails` (`rideid`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
