@@ -14,7 +14,7 @@ def get_area_from_number(a):
             if line_count==0:
                 pass
             else:
-                if line_count==a+1:
+                if line_count==a:
                     return row[1]
             line_count+=1
         return "error"
@@ -156,7 +156,6 @@ def newRide():
 # API 4: List all upcoming rides for a given source and destination
 @ride_share.route("/api/v1/rides?source=<source>&destination=<destination>", methods=["GET"])
 def listRides(source, destination):
-
 	if source and destination:
 		s = get_area_from_number(source)
 		d = get_area_from_number(destination)
@@ -180,7 +179,7 @@ def listRides(source, destination):
 				nts=nts.strftime("%d-%m-%Y:%S-%M-%H")
 				row_dict["timestamp"]=nts
 				final.append(row_dict)
-			return jsonify(final)
+			return jsonify(final), 200
 
 		else:
 			answer = make_response("204 No upcoming rides available for given source and destination", 204)
