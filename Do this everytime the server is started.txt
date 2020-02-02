@@ -1,0 +1,5 @@
+/etc/nginx/sites-enabled
+file "a1" open it
+find the ip and replace it with new ip
+
+sudo service nginx restart
