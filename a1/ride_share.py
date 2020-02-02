@@ -1,4 +1,4 @@
-#APIs 1, 2, 3, 5, 6, 7, 8, 9 completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
+#APIs 1, 2, 3, 4, 5, 6, 7, 8, 9 completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
 
 from flask import Flask, jsonify, request, make_response
 import mysql.connector, csv, string, collections, datetime
@@ -162,7 +162,6 @@ def listRides(source, destination):
 		d = get_area_from_number(destination)
 		now = datetime.datetime.now()
 		cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
-		#query = "SELECT * FROM ridedetails WHERE CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}';".format(cur_time, s, d)
 		data = {
 			"operation": "SELECT",
 			"columns": "*",
