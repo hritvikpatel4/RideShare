@@ -75,7 +75,7 @@ def addUser():
 		rows = readDB(data)
 		
 		if len(rows):
-			answer = make_response("400 User already exists", 400)
+			answer = make_response("User already exists", 405)
 		
 		else:
 			data = {
@@ -113,9 +113,13 @@ def removeUser(username):
 		answer = make_response("200 User removed", 200)
 	
 	else:
-		answer = make_response("400 Invalid user", 400)
+		answer = make_response("Invalid user", 405)
 	
 	return answer
+
+@ride_share.route("/api/v1/users/", methods=["DELETE"])
+def removeuser():
+	return make_response("Bad syntax", 400)
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
@@ -192,14 +196,15 @@ def listRides(source, destination):
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
 def rideDetails(rideId):
-	if rideId:
-		data = {
-			"operation": "SELECT",
-			"columns": "*",
-			"tablename": "ridedetails",
-			"where": ["rideid='{}'".format(rideId)]
-		}
-		r1 = readDB(data)
+	data = {
+		"operation": "SELECT",
+		"columns": "*",
+		"tablename": "ridedetails",
+		"where": ["rideid='{}'".format(rideId)]
+	}
+	r1 = readDB(data)
+
+	if len(r1):
 		data = {
 			"operation": "SELECT",
 			"columns": ["username"],
@@ -218,28 +223,27 @@ def rideDetails(rideId):
 		d["timestamp"] = "{}-{}-{}:{}-{}-{}".format(dd, mo, yy, ss, mm, hh)
 		d["source"] = str(get_area_from_number(int(r1[0][3])))
 		d["destination"] = str(get_area_from_number(int(r1[0][4])))
-		
-		if len(r1):
-			
-			if len(r2):
-				d['users'] = [x[0] for x in r2]
-		
-			return d
-		
-		else:
-			answer = make_response("400 Bad Request", 400)
+
+		if len(r2):
+			d['users'] = [x[0] for x in r2]
+	
+		return d
 	
 	else:
-		answer = make_response("400 Bad Syntax", 400)
+		answer = make_response("Bad Request", 405)
 	
 	return answer
+
+@ride_share.route("/api/v1/rides/")
+def RideDetails():
+	return make_response("Invalid call", 400)
 
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
 	parameters = request.get_json()
 
-	if rideId and parameters["username"] and "username" in parameters.keys():
+	if "username" in parameters.keys():
 		data = {
 				"operation": "SELECT",
 				"columns": ["rideid"],
@@ -259,7 +263,7 @@ def joinRide(rideId):
 		}
 		rows_user = readDB(data)
 		if not rows_user:
-			return make_response("400 Invalid username", 400)
+			return make_response("Invalid username", 405)
 		
 		data = {
 				"operation": "SELECT",
@@ -270,7 +274,7 @@ def joinRide(rideId):
 		verify_user1 = readDB(data)
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
-			return make_response("400 Cannot join a ride created by yourself", 400)
+			return make_response("Cannot join a ride created by yourself", 405)
 		
 		data = {
 				"operation": "SELECT",
@@ -281,7 +285,7 @@ def joinRide(rideId):
 		verify_user2 = readDB(data)
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
-			return make_response("400 You have already joined the ride", 400)
+			return make_response("You have already joined the ride", 405)
 
 		data = {
 				"operation": "INSERT",
@@ -295,37 +299,32 @@ def joinRide(rideId):
 		return answer
 	
 	else:
-		answer = make_response("400 Bad Syntax", 400)
+		answer = make_response("No username entered", 405)
 		return answer
 
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
-	if rideId:
-		data = {
-				"operation": "SELECT",
-				"columns": ["rideid"],
-				"tablename": "ridedetails",
-				"where": ["rideid={}".format(rideId)]
-		}
-		rows_ride = readDB(data)
+	data = {
+			"operation": "SELECT",
+			"columns": ["rideid"],
+			"tablename": "ridedetails",
+			"where": ["rideid={}".format(rideId)]
+	}
+	rows_ride = readDB(data)
 
-		if rows_ride:
-			data = {
-				"operation": "DELETE",
-				"tablename": "ridedetails",
-				"where": ["rideid='{}'".format(rideId)]
-			}
-			modifyDB(data)
-			answer = make_response("200 Ride deleted", 200)
-			return answer
-		
-		else:
-			answer = make_response("400 Ride doesn't exist!", 400)
-			return answer
+	if rows_ride:
+		data = {
+			"operation": "DELETE",
+			"tablename": "ridedetails",
+			"where": ["rideid='{}'".format(rideId)]
+		}
+		modifyDB(data)
+		answer = make_response("200 Ride deleted", 200)
+		return answer
 	
 	else:
-		answer = make_response("400 Invalid request", 400)
+		answer = make_response("Ride doesn't exist!", 405)
 		return answer
 
 # A function to connect the program to a mysql server
