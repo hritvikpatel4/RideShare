@@ -1,5 +1,3 @@
-#APIs 1, 2, 3, 4, 5, 6, 7, 8, 9 completely tested [JUST NEED TO SEE THE ERROR HANDLING RESPONSE CODES]
-
 from flask import Flask, jsonify, request, make_response
 import mysql.connector, csv, string, collections, datetime
 from mysql.connector import Error
@@ -64,7 +62,7 @@ def addUser():
 		
 		for i in range(len(parameters["password"])):
 			if parameters["password"][i] != string.hexdigits:
-				answer = make_response("400 Bad Syntax", 400)
+				return make_response("", 400)
 		
 		data = {
 			"operation": "SELECT",
@@ -75,7 +73,7 @@ def addUser():
 		rows = readDB(data)
 		
 		if len(rows):
-			answer = make_response("User already exists", 405)
+			return make_response("", 405)
 		
 		else:
 			data = {
@@ -85,12 +83,10 @@ def addUser():
 				"values": [parameters["username"], parameters["password"]]
 			}
 			modifyDB(data)
-			answer = make_response("201 New user added", 201)
+			return make_response("", 201)
 	
 	else:
-		answer = make_response("400 Bad Syntax", 400)
-	
-	return answer
+		return make_response("", 400)
 
 # API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
@@ -110,16 +106,14 @@ def removeUser(username):
 			"where": ["username='{}'".format(username)]
 		}
 		modifyDB(data)
-		answer = make_response("200 User removed", 200)
+		return make_response("", 200)
 	
 	else:
-		answer = make_response("Invalid user", 405)
-	
-	return answer
+		return make_response("", 405)
 
 @ride_share.route("/api/v1/users/", methods=["DELETE"])
 def removeuser():
-	return make_response("Bad syntax", 400)
+	return make_response("", 400)
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
@@ -147,51 +141,47 @@ def newRide():
 				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
 			modifyDB(data)
-			answer = make_response("200 Ride successfully created", 200)
+			return make_response("", 200)
 		
 		else:
-			answer = make_response("400 Cannot create ride as user does not exist. Please create a user before creating ride", 400)
+			return make_response("", 400)
 	
 	else:
-		answer = make_response("400 Bad Syntax", 400)
-	
-	return answer
+		return make_response("", 400)
 
-# API 4: List all upcoming rides for a given source and destination
-@ride_share.route("/api/v1/rides?source=<source>&destination=<destination>", methods=["GET"])
-def listRides(source, destination):
-	if source and destination:
-		s = get_area_from_number(source)
-		d = get_area_from_number(destination)
-		now = datetime.datetime.now()
-		cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
-		data = {
-			"operation": "SELECT",
-			"columns": "*",
-			"tablename": "ridedetails",
-			"where": ["CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}'".format(cur_time, s, d)]
-		}
-		rows = readDB(data)
+# API 4: List all the upcoming rides for a given source and destination
+@ride_share.route('/api/v1/rides', methods=["GET"])
+def listRides():
+    source=request.args.get('source')
+    destination=request.args.get('destination')
+    if source and destination:
+        now = datetime.datetime.now()
+        cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
+        data = {
+            "operation": "SELECT",
+            "columns": "*",
+            "tablename": "ridedetails",
+            "where": ["CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}'".format(cur_time, source, destination)]
+        }
+        rows = readDB(data)
 
-		if len(rows):
-			final=[]
-			for row in rows:
-				row_dict={}
-				row_dict["rideId"]=row[0]
-				row_dict["username"]=row[1]
-				nts=datetime.datetime.strptime(row[2],"%Y-%m-%d %H:%M:%S")
-				nts=nts.strftime("%d-%m-%Y:%S-%M-%H")
-				row_dict["timestamp"]=nts
-				final.append(row_dict)
-			return jsonify(final), 200
+        if len(rows):
+            final=[]
+            for row in rows:
+                row_dict={}
+                row_dict["rideId"]=row[0]
+                row_dict["username"]=row[1]
+                nts=datetime.datetime.strptime(row[2],"%Y-%m-%d %H:%M:%S")
+                nts=nts.strftime("%d-%m-%Y:%S-%M-%H")
+                row_dict["timestamp"]=nts
+                final.append(row_dict)
+            return jsonify(final)
 
-		else:
-			answer = make_response("204 No upcoming rides available for given source and destination", 204)
+        else:
+            return make_response("", 204)
 
-	else:
-		answer = make_response("400 Bad Syntax", 400)
-	
-	return answer
+    else:
+        return make_response("", 400)
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
@@ -230,13 +220,11 @@ def rideDetails(rideId):
 		return d
 	
 	else:
-		answer = make_response("Bad Request", 405)
-	
-	return answer
+		return make_response("", 405)
 
 @ride_share.route("/api/v1/rides/")
 def RideDetails():
-	return make_response("Invalid call", 400)
+	return make_response("", 400)
 
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
@@ -253,7 +241,7 @@ def joinRide(rideId):
 		rows_ride = readDB(data)
 		
 		if not rows_ride:
-			return make_response("Invalid ride ID", 405)
+			return make_response("", 405)
 		
 		data = {
 				"operation": "SELECT",
@@ -263,7 +251,7 @@ def joinRide(rideId):
 		}
 		rows_user = readDB(data)
 		if not rows_user:
-			return make_response("Invalid username", 405)
+			return make_response("", 405)
 		
 		data = {
 				"operation": "SELECT",
@@ -274,7 +262,7 @@ def joinRide(rideId):
 		verify_user1 = readDB(data)
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
-			return make_response("Cannot join a ride created by yourself", 405)
+			return make_response("", 405)
 		
 		data = {
 				"operation": "SELECT",
@@ -285,7 +273,7 @@ def joinRide(rideId):
 		verify_user2 = readDB(data)
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
-			return make_response("You have already joined the ride", 405)
+			return make_response("", 405)
 
 		data = {
 				"operation": "INSERT",
@@ -295,12 +283,10 @@ def joinRide(rideId):
 		}
 		modifyDB(data)
 		
-		answer = make_response("200 Joined ride successfully", 200)
-		return answer
+		return make_response("", 200)
 	
 	else:
-		answer = make_response("No username entered", 405)
-		return answer
+		return make_response("", 405)
 
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
@@ -320,12 +306,10 @@ def deleteRide(rideId):
 			"where": ["rideid='{}'".format(rideId)]
 		}
 		modifyDB(data)
-		answer = make_response("200 Ride deleted", 200)
-		return answer
+		return make_response("", 200)
 	
 	else:
-		answer = make_response("Ride doesn't exist!", 405)
-		return answer
+		return make_response("", 405)
 
 # A function to connect the program to a mysql server
 def connectDB(user, pwd, db):
