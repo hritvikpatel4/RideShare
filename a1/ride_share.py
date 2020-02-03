@@ -62,7 +62,7 @@ def addUser():
 		
 		for i in range(len(parameters["password"])):
 			if parameters["password"][i] != string.hexdigits:
-				return make_response("", 400)
+				answer = make_response("", 400)
 		
 		data = {
 			"operation": "SELECT",
@@ -73,7 +73,7 @@ def addUser():
 		rows = readDB(data)
 		
 		if len(rows):
-			return make_response("", 405)
+			answer =  make_response("", 400)
 		
 		else:
 			data = {
@@ -83,10 +83,11 @@ def addUser():
 				"values": [parameters["username"], parameters["password"]]
 			}
 			modifyDB(data)
-			return make_response("", 201)
+			answer =  make_response("", 201)
 	
 	else:
-		return make_response("", 400)
+		answer = make_response("", 400)
+	return answer
 
 # API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
@@ -106,10 +107,11 @@ def removeUser(username):
 			"where": ["username='{}'".format(username)]
 		}
 		modifyDB(data)
-		return make_response("", 200)
+		answer = make_response("", 200)
 	
 	else:
-		return make_response("", 405)
+		answer = make_response("", 400)
+	return answer
 
 @ride_share.route("/api/v1/users/", methods=["DELETE"])
 def removeuser():
@@ -141,13 +143,14 @@ def newRide():
 				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
 			modifyDB(data)
-			return make_response("", 200)
+			answer = make_response("", 201)
 		
 		else:
-			return make_response("", 400)
+			answer = make_response("", 400)
 	
 	else:
-		return make_response("", 400)
+		answer = make_response("", 400)
+	return answer
 
 # API 4: List all the upcoming rides for a given source and destination
 @ride_share.route('/api/v1/rides', methods=["GET"])
@@ -178,10 +181,11 @@ def listRides():
             return jsonify(final)
 
         else:
-            return make_response("", 204)
+            answer = make_response("", 204)
 
     else:
-        return make_response("", 400)
+        answer = make_response("", 400)
+    return answer
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
@@ -220,7 +224,8 @@ def rideDetails(rideId):
 		return d
 	
 	else:
-		return make_response("", 405)
+		answer = make_response("", 400)
+	return answer
 
 @ride_share.route("/api/v1/rides/")
 def RideDetails():
@@ -241,7 +246,7 @@ def joinRide(rideId):
 		rows_ride = readDB(data)
 		
 		if not rows_ride:
-			return make_response("", 405)
+			answer = make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -251,7 +256,7 @@ def joinRide(rideId):
 		}
 		rows_user = readDB(data)
 		if not rows_user:
-			return make_response("", 405)
+			answer = make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -262,7 +267,7 @@ def joinRide(rideId):
 		verify_user1 = readDB(data)
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
-			return make_response("", 405)
+			answer = make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -273,7 +278,7 @@ def joinRide(rideId):
 		verify_user2 = readDB(data)
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
-			return make_response("", 405)
+			answer = make_response("", 400)
 
 		data = {
 				"operation": "INSERT",
@@ -283,10 +288,11 @@ def joinRide(rideId):
 		}
 		modifyDB(data)
 		
-		return make_response("", 200)
+		answer = make_response("", 200)
 	
 	else:
-		return make_response("", 405)
+		answer = make_response("", 400)
+	return answer
 
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
@@ -306,10 +312,11 @@ def deleteRide(rideId):
 			"where": ["rideid='{}'".format(rideId)]
 		}
 		modifyDB(data)
-		return make_response("", 200)
+		answer = make_response("", 200)
 	
 	else:
-		return make_response("", 405)
+		answer = make_response("", 400)
+	return answer
 
 # A function to connect the program to a mysql server
 def connectDB(user, pwd, db):
