@@ -244,9 +244,9 @@ def joinRide(rideId):
 				"where": ["rideid={}".format(rideId)]
 		}
 		rows_ride = readDB(data)
-		
+
 		if not rows_ride:
-			answer = make_response("", 400)
+			return make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -255,8 +255,9 @@ def joinRide(rideId):
 				"where": ["username='{}'".format(parameters["username"])]
 		}
 		rows_user = readDB(data)
+
 		if not rows_user:
-			answer = make_response("", 400)
+			return make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -267,7 +268,7 @@ def joinRide(rideId):
 		verify_user1 = readDB(data)
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
-			answer = make_response("", 400)
+			return make_response("", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -278,7 +279,7 @@ def joinRide(rideId):
 		verify_user2 = readDB(data)
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
-			answer = make_response("", 400)
+			return make_response("", 400)
 
 		data = {
 				"operation": "INSERT",
@@ -293,6 +294,10 @@ def joinRide(rideId):
 	else:
 		answer = make_response("", 400)
 	return answer
+
+@ride_share.route("/api/v1/rides/", methods=["POST"])
+def random_function():
+	return make_response("", 400)
 
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
