@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 01, 2020 at 05:22 AM
+-- Generation Time: Feb 03, 2020 at 06:56 AM
 -- Server version: 10.4.11-MariaDB
 -- PHP Version: 7.4.1
 
@@ -32,11 +32,15 @@ USE `ride_share`;
 
 CREATE TABLE `ridedetails` (
   `rideid` int(11) NOT NULL,
-  `created_by` varchar(255) NOT NULL,
+  `created_by` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `timestamp` text NOT NULL,
   `source` varchar(1000) NOT NULL,
   `destination` varchar(1000) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `ridedetails`
+--
 
 -- --------------------------------------------------------
 
@@ -46,8 +50,12 @@ CREATE TABLE `ridedetails` (
 
 CREATE TABLE `rideusers` (
   `rideid` int(11) NOT NULL,
-  `username` varchar(255) NOT NULL
+  `username` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `rideusers`
+--
 
 -- --------------------------------------------------------
 
@@ -56,9 +64,13 @@ CREATE TABLE `rideusers` (
 --
 
 CREATE TABLE `userdetails` (
-  `username` varchar(500) NOT NULL,
+  `username` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `password` varchar(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `userdetails`
+--
 
 --
 -- Indexes for dumped tables
@@ -69,14 +81,14 @@ CREATE TABLE `userdetails` (
 --
 ALTER TABLE `ridedetails`
   ADD PRIMARY KEY (`rideid`),
-  ADD KEY `del_user2` (`created_by`);
+  ADD KEY `del_user` (`created_by`);
 
 --
 -- Indexes for table `rideusers`
 --
 ALTER TABLE `rideusers`
   ADD KEY `link_ride` (`rideid`),
-  ADD KEY `del_user` (`username`);
+  ADD KEY `del_user2` (`username`);
 
 --
 -- Indexes for table `userdetails`
@@ -92,7 +104,7 @@ ALTER TABLE `userdetails`
 -- AUTO_INCREMENT for table `ridedetails`
 --
 ALTER TABLE `ridedetails`
-  MODIFY `rideid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `rideid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Constraints for dumped tables
@@ -102,13 +114,13 @@ ALTER TABLE `ridedetails`
 -- Constraints for table `ridedetails`
 --
 ALTER TABLE `ridedetails`
-  ADD CONSTRAINT `del_user2` FOREIGN KEY (`created_by`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `del_user` FOREIGN KEY (`created_by`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `rideusers`
 --
 ALTER TABLE `rideusers`
-  ADD CONSTRAINT `del_user` FOREIGN KEY (`username`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `del_user2` FOREIGN KEY (`username`) REFERENCES `userdetails` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `link_ride` FOREIGN KEY (`rideid`) REFERENCES `ridedetails` (`rideid`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
