@@ -149,15 +149,14 @@ def newRide():
 
 			if rows and rows[0][0] == timestamp:
 				return make_response("", 400)
-			else:
-				data = {
-					"operation": "INSERT",
-					"tablename": "ridedetails",
-					"columns": ["created_by", "timestamp", "source", "destination"],
-					"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
-				}
-				modifyDB(data)
-				answer = make_response("", 201)
+			data = {
+				"operation": "INSERT",
+				"tablename": "ridedetails",
+				"columns": ["created_by", "timestamp", "source", "destination"],
+				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
+			}
+			modifyDB(data)
+			answer = make_response("", 201)
 		
 		else:
 			answer = make_response("", 400)
