@@ -150,15 +150,14 @@ def newRide():
 			timestamps = [x[0] for x in rows]
 			if rows and timestamp in timestamps:
 				return make_response("", 400)
-			else:
-				data = {
-					"operation": "INSERT",
-					"tablename": "ridedetails",
-					"columns": ["created_by", "timestamp", "source", "destination"],
-					"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
-				}
-				modifyDB(data)
-				answer = make_response("", 201)
+			data = {
+				"operation": "INSERT",
+				"tablename": "ridedetails",
+				"columns": ["created_by", "timestamp", "source", "destination"],
+				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
+			}
+			modifyDB(data)
+			answer = make_response("", 201)
 		
 		else:
 			answer = make_response("", 400)
