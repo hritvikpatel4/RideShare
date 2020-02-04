@@ -38,9 +38,9 @@ def construct_query(data):
 			SQLQuery = "SELECT {}".format(data["columns"][0])
 			for value in range(1, len(data["columns"])):
 				SQLQuery += ",{}".format(data["columns"][value])
-		SQLQuery += " FROM {} WHERE ".format(data["tablename"])
-		for condition in data["where"]:
-			SQLQuery += condition
+		SQLQuery += " FROM {} WHERE {}".format(data["tablename"], data["where"][0])
+		for value in range(1, len(data["where"])):
+			SQLQuery += "AND {}".format(data["where"][value])
 		SQLQuery += ";"
 
 	# DELETE operation
@@ -122,7 +122,7 @@ def removeuser():
 def newRide():
 	parameters = request.get_json()
 
-	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys():
+	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys() and parameters["source"] != parameters["destination"]:
 		data = {
 			"operation": "SELECT",
 			"columns": "*",
@@ -132,10 +132,23 @@ def newRide():
 		rows = readDB(data)
 		
 		if len(rows):
+
+			# Checking if the ride is already created.
+			data = {
+				"operation": "SELECT",
+				"tablename": "ridedetails",
+				"columns": ["timestamp"],
+				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(rows[0][0]), "destination='{}'".format(parameters["destination"])]
+			}
+			rows = readDB(data)
+		
 			date, time = parameters["timestamp"].split(":")
 			ss, mm, hh = time.split("-")
 			dd, mo, yy = date.split("-")
 			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
+
+			if rows and rows[0][0] == timestamp:
+				return make_response("", 400)
 			data = {
 				"operation": "INSERT",
 				"tablename": "ridedetails",
