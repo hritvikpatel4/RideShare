@@ -147,7 +147,8 @@ def newRide():
 			dd, mo, yy = date.split("-")
 			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
 
-			if rows and rows[0][0] == timestamp:
+			timestamps = [x[0] for x in rows]
+			if rows and timestamp in timestamps:
 				return make_response("", 400)
 			data = {
 				"operation": "INSERT",
