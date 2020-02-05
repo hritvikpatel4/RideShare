@@ -359,7 +359,7 @@ def modifyDB(data):
 	conn.close()
 
 #API 9: API to read values from database
-@ride_share.route("/api/v1/db/read")
+@ride_share.route("/api/v1/db/read", methods=["POST"])
 def readDB(data):
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
