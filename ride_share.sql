@@ -104,7 +104,7 @@ ALTER TABLE `userdetails`
 -- AUTO_INCREMENT for table `ridedetails`
 --
 ALTER TABLE `ridedetails`
-  MODIFY `rideid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `rideid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=0;
 
 --
 -- Constraints for dumped tables
