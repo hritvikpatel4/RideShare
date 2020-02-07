@@ -1,10 +1,10 @@
-
 from flask import Flask, jsonify, request, make_response
 import mysql.connector, csv, string, collections, datetime
 from mysql.connector import Error
 import requests
 
 ride_share = Flask(__name__)
+ip = "http://localhost:5000"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -72,9 +72,9 @@ def addUser():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["username"])]
 		}
-		rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
-		print(rows)
-		if len(rows):
+		code = requests.post(ip + "/api/v1/db/read", json=data)
+		#print(rows)
+		if code.status_code!=400:
 			answer =  make_response("", 400)
 		
 		else:
@@ -84,7 +84,7 @@ def addUser():
 				"columns": ["username", "password"],
 				"values": [parameters["username"], parameters["password"]]
 			}
-			requests.post("http://54.84.116.76/api/v1/db/write", json=data)
+			requests.post(ip + "/api/v1/db/write", json=data)
 			answer =  make_response("", 201)
 	
 	else:
@@ -100,7 +100,7 @@ def removeUser(username):
 		"tablename": "userdetails",
 		"where": ["username='{}'".format(username)]
 	}
-	rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data)
+	rows = requests.post(ip + "/api/v1/db/read", json=data)
 	print(rows)
 	if len(rows):
 		data = {
@@ -108,7 +108,7 @@ def removeUser(username):
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(username)]
 		}
-		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
+		requests.post(ip + "/api/v1/db/write", json=data)
 		answer = make_response("", 200)
 	
 	else:
@@ -363,7 +363,7 @@ def modifyDB():
 	conn.commit()
 	cursor.close()
 	conn.close()
-	return jsonify({}), 200
+	return jsonify({})
 
 #API 9: API to read values from database
 @ride_share.route("/api/v1/db/read", methods=["POST"])
@@ -378,7 +378,10 @@ def readDB():
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
-	return make_response(jsonify(rows), 200)
+	if not rows:
+		return make_response("", 400)
+	print(rows)
+	return str(rows),200
 
 if __name__ == '__main__':
 	ride_share.run(debug=True)
