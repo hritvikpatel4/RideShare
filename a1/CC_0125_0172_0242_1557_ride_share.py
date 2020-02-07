@@ -1,6 +1,8 @@
+
 from flask import Flask, jsonify, request, make_response
 import mysql.connector, csv, string, collections, datetime
 from mysql.connector import Error
+import requests
 
 ride_share = Flask(__name__)
 
@@ -70,8 +72,8 @@ def addUser():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["username"])]
 		}
-		rows = readDB(data)
-		
+		rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		print(rows)
 		if len(rows):
 			answer =  make_response("", 400)
 		
@@ -82,7 +84,7 @@ def addUser():
 				"columns": ["username", "password"],
 				"values": [parameters["username"], parameters["password"]]
 			}
-			modifyDB(data)
+			requests.post("http://54.84.116.76/api/v1/db/write", json=data)
 			answer =  make_response("", 201)
 	
 	else:
@@ -98,15 +100,15 @@ def removeUser(username):
 		"tablename": "userdetails",
 		"where": ["username='{}'".format(username)]
 	}
-	rows = readDB(data)
-
+	rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data)
+	print(rows)
 	if len(rows):
 		data = {
 			"operation": "DELETE",
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(username)]
 		}
-		modifyDB(data)
+		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
 		answer = make_response("", 200)
 	
 	else:
@@ -115,7 +117,7 @@ def removeUser(username):
 
 @ride_share.route("/api/v1/users/", methods=["DELETE"])
 def removeuser():
-	return make_response("", 400)
+	return make_response("", 405)
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
@@ -129,7 +131,7 @@ def newRide():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
-		rows = readDB(data)
+		rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 		
 		if len(rows):
 
@@ -140,7 +142,7 @@ def newRide():
 				"columns": ["timestamp"],
 				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(rows[0][0]), "destination='{}'".format(parameters["destination"])]
 			}
-			rows = readDB(data)
+			rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 		
 			date, time = parameters["timestamp"].split(":")
 			ss, mm, hh = time.split("-")
@@ -156,7 +158,7 @@ def newRide():
 				"columns": ["created_by", "timestamp", "source", "destination"],
 				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
-			modifyDB(data)
+			requests.post("http://54.84.116.76/api/v1/db/write", json=data)
 			answer = make_response("", 201)
 		
 		else:
@@ -180,7 +182,7 @@ def listRides():
             "tablename": "ridedetails",
             "where": ["CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}'".format(cur_time, source, destination)]
         }
-        rows = readDB(data)
+        rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 
         if len(rows):
             final=[]
@@ -210,7 +212,7 @@ def rideDetails(rideId):
 		"tablename": "ridedetails",
 		"where": ["rideid='{}'".format(rideId)]
 	}
-	r1 = readDB(data)
+	r1 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 
 	if len(r1):
 		data = {
@@ -219,7 +221,7 @@ def rideDetails(rideId):
 			"tablename": "rideusers",
 			"where": ["rideid='{}'".format(rideId)]
 		}
-		r2 = readDB(data)
+		r2 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 		
 		d = {}
 		d["rideId"] = str(r1[0][0])
@@ -257,7 +259,7 @@ def joinRide(rideId):
 				"tablename": "ridedetails",
 				"where": ["rideid={}".format(rideId)]
 		}
-		rows_ride = readDB(data)
+		rows_ride = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 
 		if not rows_ride:
 			return make_response("", 400)
@@ -268,7 +270,7 @@ def joinRide(rideId):
 				"tablename": "userdetails",
 				"where": ["username='{}'".format(parameters["username"])]
 		}
-		rows_user = readDB(data)
+		rows_user = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 
 		if not rows_user:
 			return make_response("", 400)
@@ -279,7 +281,7 @@ def joinRide(rideId):
 				"tablename": "ridedetails",
 				"where": ["rideid={}".format(rideId)]
 		}
-		verify_user1 = readDB(data)
+		verify_user1 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
 			return make_response("", 400)
@@ -290,7 +292,7 @@ def joinRide(rideId):
 				"tablename": "rideusers",
 				"where": ["rideid={}".format(rideId)]
 		}
-		verify_user2 = readDB(data)
+		verify_user2 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
 			return make_response("", 400)
@@ -301,7 +303,7 @@ def joinRide(rideId):
 				"columns": ["rideid", "username"],
 				"values": [rideId, parameters["username"]]
 		}
-		modifyDB(data)
+		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
 		
 		answer = make_response("", 200)
 	
@@ -322,7 +324,7 @@ def deleteRide(rideId):
 			"tablename": "ridedetails",
 			"where": ["rideid={}".format(rideId)]
 	}
-	rows_ride = readDB(data)
+	rows_ride = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
 
 	if rows_ride:
 		data = {
@@ -330,7 +332,7 @@ def deleteRide(rideId):
 			"tablename": "ridedetails",
 			"where": ["rideid='{}'".format(rideId)]
 		}
-		modifyDB(data)
+		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
 		answer = make_response("", 200)
 	
 	else:
@@ -344,23 +346,30 @@ def connectDB(user, pwd, db):
 		conn = mysql.connector.connect(host='localhost', user=user, database=db, password=pwd)
 	except Error as e:
 		print(e)
+	print(conn)
 	return conn
 
 # API 8: API to modify (insert or delete) values from database
 @ride_share.route("/api/v1/db/write", methods=["POST"])
-def modifyDB(data):
+def modifyDB():
+	data = request.get_json()
+	print("data: ", data)
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
 	SQLQuery = construct_query(data)
 	print(SQLQuery)
+	print("Trying to execute SQL query")
 	cursor.execute(SQLQuery)
 	conn.commit()
 	cursor.close()
 	conn.close()
+	return jsonify({}), 200
 
 #API 9: API to read values from database
 @ride_share.route("/api/v1/db/read", methods=["POST"])
-def readDB(data):
+def readDB():
+	data = request.get_json()
+	print(data)
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
 	SQLQuery = construct_query(data)
@@ -369,7 +378,8 @@ def readDB(data):
 	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
-	return rows
+	return make_response(jsonify(rows), 200)
 
 if __name__ == '__main__':
 	ride_share.run(debug=True)
+
