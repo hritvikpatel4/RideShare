@@ -4,5 +4,5 @@ apt speedtest-cli	-
 apt python3-pip		-
 apt emacs		-
 pip requests		-
-pip gunicorn		-
+pip gunicorn3		-
 pip flask		-

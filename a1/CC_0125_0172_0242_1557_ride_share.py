@@ -4,7 +4,7 @@ from mysql.connector import Error
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://localhost:5000"
+ip = "http://127.0.0.1:5000"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -17,7 +17,7 @@ def get_area_from_number(a):
                 if line_count==a:
                     return row[1]
             line_count+=1
-        return "error"
+        return -1
 
 # Function to construct the SQL query
 def construct_query(data):
@@ -73,8 +73,7 @@ def addUser():
 			"where": ["username='{}'".format(parameters["username"])]
 		}
 		code = requests.post(ip + "/api/v1/db/read", json=data)
-		#print(rows)
-		if code.status_code!=400:
+		if code.status_code != 400:
 			answer =  make_response("", 400)
 		
 		else:
@@ -100,9 +99,9 @@ def removeUser(username):
 		"tablename": "userdetails",
 		"where": ["username='{}'".format(username)]
 	}
-	rows = requests.post(ip + "/api/v1/db/read", json=data)
-	print(rows)
-	if len(rows):
+	code = requests.post(ip + "/api/v1/db/read", json=data)
+	
+	if code.status_code != 400:
 		data = {
 			"operation": "DELETE",
 			"tablename": "userdetails",
@@ -131,9 +130,9 @@ def newRide():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
-		rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		code = requests.post(ip + "/api/v1/db/read", json=data)
 		
-		if len(rows):
+		if code.status_code != 400:
 
 			# Checking if the ride is already created.
 			data = {
@@ -142,23 +141,28 @@ def newRide():
 				"columns": ["timestamp"],
 				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(rows[0][0]), "destination='{}'".format(parameters["destination"])]
 			}
-			rows = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+			code = requests.post(ip + "/api/v1/db/read", json=data)
 		
 			date, time = parameters["timestamp"].split(":")
 			ss, mm, hh = time.split("-")
 			dd, mo, yy = date.split("-")
 			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
+			
+			### FIX THIS
 
 			timestamps = [x[0] for x in rows]
-			if rows and timestamp in timestamps:
+			if code.status_code != 400 and timestamp in timestamps:
 				return make_response("", 400)
+
+			###
+
 			data = {
 				"operation": "INSERT",
 				"tablename": "ridedetails",
 				"columns": ["created_by", "timestamp", "source", "destination"],
 				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
-			requests.post("http://54.84.116.76/api/v1/db/write", json=data)
+			requests.post(ip + "/api/v1/db/write", json=data)
 			answer = make_response("", 201)
 		
 		else:
@@ -212,17 +216,19 @@ def rideDetails(rideId):
 		"tablename": "ridedetails",
 		"where": ["rideid='{}'".format(rideId)]
 	}
-	r1 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+	r1 = requests.post(ip + "/api/v1/db/read", json=data)
 
-	if len(r1):
+	if r1.status_code != 400:
 		data = {
 			"operation": "SELECT",
 			"columns": ["username"],
 			"tablename": "rideusers",
 			"where": ["rideid='{}'".format(rideId)]
 		}
-		r2 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		r2 = requests.post(ip + "/api/v1/db/read", json=data)
 		
+		### FIX THIS
+
 		d = {}
 		d["rideId"] = str(r1[0][0])
 		d["created_by"] = r1[0][1]
@@ -236,7 +242,9 @@ def rideDetails(rideId):
 
 		if len(r2):
 			d['users'] = [x[0] for x in r2]
-	
+
+		###
+
 		return d
 	
 	else:
@@ -259,10 +267,10 @@ def joinRide(rideId):
 				"tablename": "ridedetails",
 				"where": ["rideid={}".format(rideId)]
 		}
-		rows_ride = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		rows_ride = requests.post(ip + "/api/v1/db/read", json=data)
 
-		if not rows_ride:
-			return make_response("", 400)
+		if rows_ride.status_code == 400:
+			return make_response("Given ride doesn't exist.", 400)
 		
 		data = {
 				"operation": "SELECT",
@@ -270,18 +278,20 @@ def joinRide(rideId):
 				"tablename": "userdetails",
 				"where": ["username='{}'".format(parameters["username"])]
 		}
-		rows_user = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		rows_user = requests.post(ip + "/api/v1/db/read", json=data)
 
-		if not rows_user:
-			return make_response("", 400)
+		if rows_user.status_code == 400:
+			return make_response("Given user doesn't exist.", 400)
 		
+		### FIX THIS
+
 		data = {
 				"operation": "SELECT",
 				"columns": ["created_by"],
 				"tablename": "ridedetails",
 				"where": ["rideid={}".format(rideId)]
 		}
-		verify_user1 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		verify_user1 = requests.post(ip + "/api/v1/db/read", json=data)
 		verify_user1 = [x[0] for x in verify_user1]
 		if parameters["username"] in verify_user1:
 			return make_response("", 400)
@@ -292,10 +302,12 @@ def joinRide(rideId):
 				"tablename": "rideusers",
 				"where": ["rideid={}".format(rideId)]
 		}
-		verify_user2 = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+		verify_user2 = requests.post(ip + "/api/v1/db/read", json=data)
 		verify_user2 = [x[0] for x in verify_user2]
 		if parameters["username"] in verify_user2:
 			return make_response("", 400)
+
+		###
 
 		data = {
 				"operation": "INSERT",
@@ -303,7 +315,7 @@ def joinRide(rideId):
 				"columns": ["rideid", "username"],
 				"values": [rideId, parameters["username"]]
 		}
-		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
+		requests.post(ip + "/api/v1/db/write", json=data)
 		
 		answer = make_response("", 200)
 	
@@ -324,15 +336,15 @@ def deleteRide(rideId):
 			"tablename": "ridedetails",
 			"where": ["rideid={}".format(rideId)]
 	}
-	rows_ride = requests.post("http://54.84.116.76/api/v1/db/read", json=data).json()
+	rows_ride = requests.post(ip + "/api/v1/db/read", json=data)
 
-	if rows_ride:
+	if rows_ride.status_code != 400:
 		data = {
 			"operation": "DELETE",
 			"tablename": "ridedetails",
 			"where": ["rideid='{}'".format(rideId)]
 		}
-		requests.post("http://54.84.116.76/api/v1/db/write", json=data)
+		requests.post(ip + "/api/v1/db/write", json=data)
 		answer = make_response("", 200)
 	
 	else:
@@ -353,36 +365,45 @@ def connectDB(user, pwd, db):
 @ride_share.route("/api/v1/db/write", methods=["POST"])
 def modifyDB():
 	data = request.get_json()
-	print("data: ", data)
+	print(data)
+
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
 	SQLQuery = construct_query(data)
 	print(SQLQuery)
+	
 	print("Trying to execute SQL query")
 	cursor.execute(SQLQuery)
 	conn.commit()
 	cursor.close()
 	conn.close()
-	return jsonify({})
+	
+	return "",200
 
 #API 9: API to read values from database
 @ride_share.route("/api/v1/db/read", methods=["POST"])
 def readDB():
 	data = request.get_json()
 	print(data)
+
 	conn = connectDB('root', '', 'ride_share')
 	cursor = conn.cursor()
 	SQLQuery = construct_query(data)
 	print(SQLQuery)
+	
+	print("Trying to execute SQL query")
 	cursor.execute(SQLQuery)
-	rows = cursor.fetchall()
+	rows = []
+	for i in cursor.fetchall():
+		rows.append(i)
 	cursor.close()
 	conn.close()
+	
+	print(rows)
+
 	if not rows:
 		return make_response("", 400)
-	print(rows)
 	return str(rows),200
 
 if __name__ == '__main__':
 	ride_share.run(debug=True)
-
