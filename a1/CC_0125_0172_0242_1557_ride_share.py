@@ -59,6 +59,7 @@ def construct_query(data):
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
 	parameters = request.get_json()	
+	print(parameters is None)
 
 	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
 		
@@ -142,6 +143,7 @@ def newRide():
 				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(parameters["created_by"]), "destination='{}'".format(parameters["destination"])]
 			}
 			code = requests.post(ip + "/api/v1/db/read", json=data)
+			# TODO: handle this shit
 			rows = code.json()
 			
 			date, time = parameters["timestamp"].split(":")
@@ -303,7 +305,12 @@ def joinRide(rideId):
 				"where": ["rideid={}".format(rideId)]
 		}
 		verify_user2 = requests.post(ip + "/api/v1/db/read", json=data)
-		verify_user2 = [x[0] for x in verify_user2]
+		if verify_user2.text:
+			verify_user2 = verify_user2.json()
+			verify_user2 = [x[0] for x in verify_user2]
+		else:
+			verify_user2 = []
+		print("verify user:", verify_user2)
 		if parameters["username"] in verify_user2:
 			return make_response("", 400)
 
