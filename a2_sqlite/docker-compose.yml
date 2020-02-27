@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  users:
+    build: ./users
+    command: python CC_0125_0172_0242_1557_ride_share_users.py
+    restart: always
+    ports:
+      - "8080:5000"
+    volumes:
+      - ./users:/users
+  
+  rides:
+    build: ./rides
+    command: python CC_0125_0172_0242_1557_ride_share_rides.py
+    restart: always
+    ports: 
+      - "8000:4000"
+    volumes:
+      - ./rides:/rides

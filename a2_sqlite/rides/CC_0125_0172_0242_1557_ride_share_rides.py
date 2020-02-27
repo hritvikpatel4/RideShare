@@ -4,7 +4,7 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:4000"
+ip = "http://0.0.0.0:4000"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -68,10 +68,13 @@ def newRide():
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		# TODO: replace with the container name : 80 (this is the port name)
-		code = requests.get("http://127.0.0.1:5000/api/v1/users")
+		code = requests.get("http://52.55.89.98:8080/api/v1/users")
 
-		if code.status_code != 400:
+		rows = []
+		if code.text:
+			rows = code.json()
 
+		if parameters["created_by"] in rows:
 			# Checking if the ride is already created.
 			data = {
 				"operation": "SELECT",
@@ -213,16 +216,10 @@ def joinRide(rideId):
 
 		if rows_ride.status_code == 400:
 			return make_response("Given ride doesn't exist.", 400)
-		
-		data = {
-				"operation": "SELECT",
-				"columns": ["username"],
-				"tablename": "userdetails",
-				"where": ["username='{}'".format(parameters["username"])]
-		}
-		rows_user = requests.post(ip + "/api/v1/db/read", json=data)
 
-		if rows_user.status_code == 400:
+		rows_user = requests.get("http://52.55.89.98:8080/api/v1/users")
+
+		if rows_user.text and parameters["username"] not in rows_user.json():
 			return make_response("Given user doesn't exist.", 400)
 		
 
@@ -344,4 +341,4 @@ def readDB():
 	return jsonify(rows),200
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=4000)
+	ride_share.run(debug=True, port=4000, host="0.0.0.0")

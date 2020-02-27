@@ -3,6 +3,6 @@ FROM python
 ADD . /users
 WORKDIR /users
 
-EXPOSE 4000
+EXPOSE 5000
 
-RUN pip install -r ../requirements.txt
+RUN pip install -r requirements.txt

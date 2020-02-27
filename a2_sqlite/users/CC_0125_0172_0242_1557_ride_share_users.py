@@ -61,6 +61,7 @@ def addUser():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["username"])]
 		}
+		print(ip + "/api/v1/db/read")
 		code = requests.post(ip + "/api/v1/db/read", json=data)
 		if code.status_code != 400:
 			answer =  make_response("", 400)
@@ -115,11 +116,11 @@ def list_all():
             "tablename": "userdetails",
             "where":["1=1"]
         }
-    r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=data).json()
-    if len(r1)==0:
+    r1 = requests.post("http://127.0.0.1:5000/api/v1/db/read", json=data)
+    if not r1.text:
         return make_response("",204)
     else:
-        r1=[x[0] for x in r1]
+        r1=[x[0] for x in r1.json()]
         return make_response(jsonify(r1),200)
 
 # A function to connect the program to a mysql server
@@ -174,4 +175,4 @@ def readDB():
 
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=5000)
+	ride_share.run(debug=True, port=5000, host="0.0.0.0")
