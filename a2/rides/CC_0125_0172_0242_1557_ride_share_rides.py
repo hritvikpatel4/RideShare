@@ -4,7 +4,7 @@ from mysql.connector import Error
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:5000"
+ip = "http://127.0.0.1:4000"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -54,70 +54,6 @@ def construct_query(data):
 				SQLQuery += condition
 		SQLQuery += ";"
 	return SQLQuery
-
-# API 1: To add a new user to the database.
-@ride_share.route("/api/v1/users", methods=["PUT"])
-def addUser():
-	parameters = request.get_json()	
-	print(parameters is None)
-
-	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
-		
-		for i in range(len(parameters["password"])):
-			if parameters["password"][i] != string.hexdigits:
-				answer = make_response("", 400)
-		
-		data = {
-			"operation": "SELECT",
-			"columns": "*",
-			"tablename": "userdetails",
-			"where": ["username='{}'".format(parameters["username"])]
-		}
-		code = requests.post(ip + "/api/v1/db/read", json=data)
-		if code.status_code != 400:
-			answer =  make_response("", 400)
-		
-		else:
-			data = {
-				"operation": "INSERT",
-				"tablename": "userdetails",
-				"columns": ["username", "password"],
-				"values": [parameters["username"], parameters["password"]]
-			}
-			requests.post(ip + "/api/v1/db/write", json=data)
-			answer =  make_response("", 201)
-	
-	else:
-		answer = make_response("", 400)
-	return answer
-
-# API 2: To delete an existing user from the database.
-@ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
-def removeUser(username):
-	data = {
-		"operation": "SELECT",
-		"columns": "*",
-		"tablename": "userdetails",
-		"where": ["username='{}'".format(username)]
-	}
-	code = requests.post(ip + "/api/v1/db/read", json=data)
-	
-	if code.status_code != 400:
-		data = {
-			"operation": "DELETE",
-			"tablename": "userdetails",
-			"where": ["username='{}'".format(username)]
-		}
-		requests.post(ip + "/api/v1/db/write", json=data)
-		answer = make_response("", 200)
-	
-	else:
-		answer = make_response("", 400)
-	return answer
-
-@ride_share.route("/api/v1/users/", methods=["DELETE"])
-def removeuser():
-	return make_response("", 405)
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
@@ -407,4 +343,4 @@ def readDB():
 	return jsonify(rows),200
 
 if __name__ == '__main__':
-	ride_share.run(debug=True)
+	ride_share.run(debug=True, port=4000)

@@ -1,10 +1,10 @@
-from flask import Flask, jsonify, request, make_response
-import mysql.connector, csv, string, collections, datetime
-from mysql.connector import Error
+from flask import Flask, jsonify, request, make_response, redirect
+import csv, string, collections, datetime
+from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:5000"
+ip = "http://127.0.0.1:4000"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -55,70 +55,6 @@ def construct_query(data):
 		SQLQuery += ";"
 	return SQLQuery
 
-# API 1: To add a new user to the database.
-@ride_share.route("/api/v1/users", methods=["PUT"])
-def addUser():
-	parameters = request.get_json()	
-	print(parameters is None)
-
-	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
-		
-		for i in range(len(parameters["password"])):
-			if parameters["password"][i] != string.hexdigits:
-				answer = make_response("", 400)
-		
-		data = {
-			"operation": "SELECT",
-			"columns": "*",
-			"tablename": "userdetails",
-			"where": ["username='{}'".format(parameters["username"])]
-		}
-		code = requests.post(ip + "/api/v1/db/read", json=data)
-		if code.status_code != 400:
-			answer =  make_response("", 400)
-		
-		else:
-			data = {
-				"operation": "INSERT",
-				"tablename": "userdetails",
-				"columns": ["username", "password"],
-				"values": [parameters["username"], parameters["password"]]
-			}
-			requests.post(ip + "/api/v1/db/write", json=data)
-			answer =  make_response("", 201)
-	
-	else:
-		answer = make_response("", 400)
-	return answer
-
-# API 2: To delete an existing user from the database.
-@ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
-def removeUser(username):
-	data = {
-		"operation": "SELECT",
-		"columns": "*",
-		"tablename": "userdetails",
-		"where": ["username='{}'".format(username)]
-	}
-	code = requests.post(ip + "/api/v1/db/read", json=data)
-	
-	if code.status_code != 400:
-		data = {
-			"operation": "DELETE",
-			"tablename": "userdetails",
-			"where": ["username='{}'".format(username)]
-		}
-		requests.post(ip + "/api/v1/db/write", json=data)
-		answer = make_response("", 200)
-	
-	else:
-		answer = make_response("", 400)
-	return answer
-
-@ride_share.route("/api/v1/users/", methods=["DELETE"])
-def removeuser():
-	return make_response("", 405)
-
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
@@ -131,7 +67,8 @@ def newRide():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
-		code = requests.post(ip + "/api/v1/db/read", json=data)
+		# TODO: replace with the container name : 80 (this is the port name)
+		code = requests.get("http://127.0.0.1:5000/api/v1/users")
 
 		if code.status_code != 400:
 
@@ -144,8 +81,10 @@ def newRide():
 			}
 			code = requests.post(ip + "/api/v1/db/read", json=data)
 			# TODO: handle this shit
-			rows = code.json()
-			
+			rows = []
+			if code.text:
+				rows = code.json()
+				
 			date, time = parameters["timestamp"].split(":")
 			ss, mm, hh = time.split("-")
 			dd, mo, yy = date.split("-")
@@ -163,7 +102,6 @@ def newRide():
 			}
 			requests.post(ip + "/api/v1/db/write", json=data)
 			answer = make_response("", 201)
-		
 		else:
 			answer = make_response("", 400)
 	
@@ -358,12 +296,12 @@ def deleteRide(rideId):
 	return answer
 
 # A function to connect the program to a mysql server
-def connectDB(user, pwd, db):
+def connectDB(db):
 	conn = None
 	try:
-		conn = mysql.connector.connect(host='localhost', user=user, database=db, password=pwd)
-	except Error as e:
-		print(e)
+		conn = connect(db)
+	except:
+		print("Error in connecting to the database")
 	return conn
 
 # API 8: API to modify (insert or delete) values from database
@@ -372,8 +310,9 @@ def modifyDB():
 	data = request.get_json()
 	print(data)
 
-	conn = connectDB('root', '', 'ride_share')
+	conn = connectDB('ride_share_rides.db')
 	cursor = conn.cursor()
+	cursor.execute("PRAGMA foreign_keys = 1")
 	SQLQuery = construct_query(data)
 	print(SQLQuery)
 	
@@ -390,15 +329,13 @@ def readDB():
 	data = request.get_json()
 	print(data)
 
-	conn = connectDB('root', '', 'ride_share')
+	conn = connectDB('ride_share_rides.db')
 	cursor = conn.cursor()
 	SQLQuery = construct_query(data)
 	print(SQLQuery)
 	
 	cursor.execute(SQLQuery)
-	rows = []
-	for i in cursor.fetchall():
-		rows.append(i)
+	rows = cursor.fetchall()
 	cursor.close()
 	conn.close()
 	
@@ -407,4 +344,4 @@ def readDB():
 	return jsonify(rows),200
 
 if __name__ == '__main__':
-	ride_share.run(debug=True)
+	ride_share.run(debug=True, port=4000)
