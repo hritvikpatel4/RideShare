@@ -68,7 +68,7 @@ def newRide():
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		# TODO: replace with the container name : 80 (this is the port name)
-		code = requests.get(ip+"/api/v1/users")
+		code = requests.get("http://54.210.195.176:8080/api/v1/users")
 
 		rows = []
 		if code.text:
@@ -124,7 +124,7 @@ def listRides():
             "operation": "SELECT",
             "columns": "*",
             "tablename": "ridedetails",
-            "where": ["CAST(timestamp as DATETIME)>'{}' AND source='{}' AND destination='{}'".format(cur_time, source, destination)]
+            "where": ["source='{}' AND destination='{}'".format(source, destination)]
         }
         rows = requests.post(ip + "/api/v1/db/read", json=data)
         if len(rows.text):
@@ -217,7 +217,7 @@ def joinRide(rideId):
 		if rows_ride.status_code == 400:
 			return make_response("Given ride doesn't exist.", 400)
 
-		rows_user = requests.get(ip+"/api/v1/users")
+		rows_user = requests.get("http://54.210.195.176:8080/api/v1/users")
 
 		if rows_user.text and parameters["username"] not in rows_user.json():
 			return make_response("Given user doesn't exist.", 400)
