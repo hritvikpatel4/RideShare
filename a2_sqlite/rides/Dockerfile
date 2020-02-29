@@ -3,6 +3,6 @@ FROM python
 ADD . /rides
 WORKDIR /rides
 
-EXPOSE 4000
+EXPOSE 80
 
 RUN pip install -r requirements.txt
