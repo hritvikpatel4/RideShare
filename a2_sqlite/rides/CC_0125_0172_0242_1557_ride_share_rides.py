@@ -68,7 +68,7 @@ def newRide():
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		# TODO: replace with the container name : 80 (this is the port name)
-		code = requests.get("http://52.55.89.98:8080/api/v1/users")
+		code = requests.get(ip+"/api/v1/users")
 
 		rows = []
 		if code.text:
@@ -217,7 +217,7 @@ def joinRide(rideId):
 		if rows_ride.status_code == 400:
 			return make_response("Given ride doesn't exist.", 400)
 
-		rows_user = requests.get("http://52.55.89.98:8080/api/v1/users")
+		rows_user = requests.get(ip+"/api/v1/users")
 
 		if rows_user.text and parameters["username"] not in rows_user.json():
 			return make_response("Given user doesn't exist.", 400)
