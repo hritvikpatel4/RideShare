@@ -340,5 +340,19 @@ def readDB():
 		return make_response("", 400)
 	return jsonify(rows),200
 
+#API to clear database
+@ride_share.route("/api/v1/db/clear",methods=["POST"])
+def clear():
+	data = {
+			"operation": "DELETE",
+			"tablename": "ridedetails",
+			"where": ["1=1"]
+		}
+	try:
+		requests.post(ip+"/api/v1/db/write", json=data)
+		return make_response("",200)
+	except:
+		return make_response("bad request",400)
+
 if __name__ == '__main__':
 	ride_share.run(debug=True, port=4000, host="0.0.0.0")
