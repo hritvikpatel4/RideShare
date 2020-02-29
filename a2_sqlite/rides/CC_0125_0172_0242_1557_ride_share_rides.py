@@ -4,7 +4,7 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:4000"
+ip = "http://0.0.0.0:80"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -355,4 +355,4 @@ def clear():
 		return make_response("bad request",400)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=4000, host="0.0.0.0")
+	ride_share.run(debug=True, port=80, host="0.0.0.0")
