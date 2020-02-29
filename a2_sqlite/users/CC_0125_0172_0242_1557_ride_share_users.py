@@ -4,7 +4,7 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:5000"
+ip = "http://127.0.0.1:80"
 
 
 # Function to construct the SQL query
@@ -188,4 +188,4 @@ def clear():
 		return make_response("bad request",400)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=5000, host="0.0.0.0")
+	ride_share.run(debug=True, port=80, host="0.0.0.0")
