@@ -6,7 +6,7 @@ services:
     command: python CC_0125_0172_0242_1557_ride_share_users.py
     restart: always
     ports:
-      - "8080:5000"
+      - "8080:80"
     volumes:
       - ./users:/users
   
@@ -15,6 +15,6 @@ services:
     command: python CC_0125_0172_0242_1557_ride_share_rides.py
     restart: always
     ports: 
-      - "8000:4000"
+      - "8000:80"
     volumes:
       - ./rides:/rides
