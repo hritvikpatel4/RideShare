@@ -67,7 +67,7 @@ def newRide():
 			"tablename": "userdetails",
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
-		# TODO: replace with the container name : 80 (this is the port name)
+		
 		code = requests.get("http://54.210.195.176:8080/api/v1/users")
 
 		rows = []
@@ -83,7 +83,7 @@ def newRide():
 				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(parameters["created_by"]), "destination='{}'".format(parameters["destination"])]
 			}
 			code = requests.post(ip + "/api/v1/db/read", json=data)
-			# TODO: handle this shit
+			
 			rows = []
 			if code.text:
 				rows = code.json()
