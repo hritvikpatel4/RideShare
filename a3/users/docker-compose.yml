@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  users:
+    build: ./users
+    image: users:latest
+    container_name: users
+    command: python CC_0125_0172_0242_1557_ride_share_users.py
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - TEAM_NAME=CC_0125_0172_0242_1557
+    volumes:
+      - ./users:/users
