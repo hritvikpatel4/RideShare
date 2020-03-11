@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  rides:
+    build: ./rides
+    image: rides:latest
+    container_name: rides
+    command: python CC_0125_0172_0242_1557_ride_share_rides.py
+    restart: always
+    ports: 
+      - "80:80"
+    environment:
+      - TEAM_NAME=CC_0125_0172_0242_1557
+    volumes:
+      - ./rides:/rides
+  
