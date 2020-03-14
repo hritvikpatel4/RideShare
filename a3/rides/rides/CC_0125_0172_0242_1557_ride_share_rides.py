@@ -4,7 +4,9 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:80"
+ip = "http://127.0.0.1:4000"
+cross_ip = "http://127.0.0.1:6000"
+host = "127.0.0.1"
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -53,11 +55,35 @@ def construct_query(data):
 			for condition in data["where"]:
 				SQLQuery += condition
 		SQLQuery += ";"
+	elif data["operation"] == "UPDATE":
+		SQLQuery = "UPDATE {} SET {} = {} + {};".format(data["tablename"], data["column"], data["column"], data["update_value"])
 	return SQLQuery
+
+def increment_counter():
+	data = {
+		"operation": "UPDATE",
+		"tablename": "counter",
+		"column": "http_requests_count",
+		"update_value": "1"
+	}
+	requests.post(ip + "/api/v1/db/write", json=data)
+
+# Function to count the number of HTTP requests
+@ride_share.route("/api/v1/_count")
+def counter():
+	data = {
+		"operation": "SELECT",
+		"columns": "*",
+		"tablename": "counter",
+		"where": ["1=1"]
+	}
+	code = requests.post(ip + "/api/v1/db/read", json=data)
+	return jsonify(code.json()[0]), 200
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
+	increment_counter()
 	parameters = request.get_json()
 
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys() and parameters["source"] != parameters["destination"]:
@@ -68,7 +94,7 @@ def newRide():
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		
-		code = requests.get("http://52.206.187.22/api/v1/users")
+		code = requests.get(cross_ip + "/api/v1/users")
 
 		rows = []
 		if code.text:
@@ -115,6 +141,7 @@ def newRide():
 # API 4: List all the upcoming rides for a given source and destination
 @ride_share.route('/api/v1/rides', methods=["GET"])
 def listRides():
+    increment_counter()
     source=request.args.get('source')
     destination=request.args.get('destination')
     if source and destination:
@@ -154,6 +181,7 @@ def listRides():
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
 def rideDetails(rideId):
+	increment_counter()
 	data = {
 		"operation": "SELECT",
 		"columns": "*",
@@ -203,6 +231,7 @@ def RideDetails():
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
+	increment_counter()
 	parameters = request.get_json()
 
 	if "username" in parameters.keys():
@@ -217,7 +246,7 @@ def joinRide(rideId):
 		if rows_ride.status_code == 400:
 			return make_response("Given ride doesn't exist.", 400)
 
-		rows_user = requests.get("http://52.206.187.22/api/v1/users")
+		rows_user = requests.get(cross_ip + "/api/v1/users")
 
 		if rows_user.text and parameters["username"] not in rows_user.json():
 			return make_response("Given user doesn't exist.", 400)
@@ -264,13 +293,10 @@ def joinRide(rideId):
 		answer = make_response("", 400)
 	return answer
 
-@ride_share.route("/api/v1/rides/", methods=["POST"])
-def random_function():
-	return make_response("", 400)
-
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
+	increment_counter()
 	data = {
 		"operation": "SELECT",
 		"columns": ["rideid"],
@@ -372,4 +398,4 @@ def clear():
 		return make_response("bad request",400)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=80, host="0.0.0.0")
+	ride_share.run(debug=True, port=4000, host=host)

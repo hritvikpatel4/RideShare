@@ -4,7 +4,9 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:80"
+ip = "http://127.0.0.1:6000"
+host = "127.0.0.1"
+port = 6000
 
 
 # Function to construct the SQL query
@@ -41,13 +43,36 @@ def construct_query(data):
 			for condition in data["where"]:
 				SQLQuery += condition
 		SQLQuery += ";"
+	elif data["operation"] == "UPDATE":
+		SQLQuery = "UPDATE {} SET {} = {} + {};".format(data["tablename"], data["column"], data["column"], data["update_value"])
 	return SQLQuery
+
+def increment_counter():
+	data = {
+		"operation": "UPDATE",
+		"tablename": "counter",
+		"column": "http_requests_count",
+		"update_value": "1"
+	}
+	requests.post(ip + "/api/v1/db/write", json=data)
+
+# Function to count the number of HTTP requests
+@ride_share.route("/api/v1/_count")
+def counter():
+	data = {
+		"operation": "SELECT",
+		"columns": "*",
+		"tablename": "counter",
+		"where": ["1=1"]
+	}
+	code = requests.post(ip + "/api/v1/db/read", json=data)
+	return jsonify(code.json()[0]), 200
 
 # API 1: To add a new user to the database.
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
+	increment_counter()
 	parameters = request.get_json()	
-	print(parameters is None)
 
 	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
 		
@@ -83,6 +108,7 @@ def addUser():
 # API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
+	increment_counter()
 	data = {
 		"operation": "SELECT",
 		"columns": "*",
@@ -188,4 +214,4 @@ def clear():
 		return make_response("bad request",400)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=80, host='0.0.0.0')
+	ride_share.run(debug=True, port=port, host=host)
