@@ -4,9 +4,12 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:4000"
-cross_ip = "http://127.0.0.1:6000"
-host = "127.0.0.1"
+ip = "http://127.0.0.1:80"
+cross_ip = "52.20.29.209" # load balancer
+host = "0.0.0.0"
+port = 80
+
+origin = {"Origin": "52.7.189.65"}
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -24,7 +27,7 @@ def get_area_from_number(a):
 # Function to construct the SQL query
 def construct_query(data):
 	# data is of JSON type
-	# operation is INSERT
+	# INSERT operation
 	if data["operation"] == "INSERT":
 		SQLQuery = "INSERT INTO {} ({}".format(data["tablename"], data["columns"][0])
 		for value in range(1, len(data["columns"])):
@@ -55,8 +58,15 @@ def construct_query(data):
 			for condition in data["where"]:
 				SQLQuery += condition
 		SQLQuery += ";"
+
+	# UPDATE operation
 	elif data["operation"] == "UPDATE":
 		SQLQuery = "UPDATE {} SET {} = {} + {};".format(data["tablename"], data["column"], data["column"], data["update_value"])
+
+	# RESET operation for HTTP requests
+        elif data["operation"] == "RESET":
+                SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+
 	return SQLQuery
 
 def increment_counter():
@@ -80,6 +90,21 @@ def counter():
 	code = requests.post(ip + "/api/v1/db/read", json=data)
 	return jsonify(code.json()[0]), 200
 
+# Function to reset the HTTP requests
+@ride_share.route("/api/v1/_count", methods=["DELETE"])
+def resetcount():
+        data = {
+                "operation": "RESET",
+                "tablename": "counter",
+                "column": "http_requests_count",
+                "val": "0"
+        }
+        try:
+                requests.post(ip+"/api/v1/db/write", json=data)
+                return make_response("",200)
+        except:
+                return make_response("bad request",400)
+
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
@@ -94,7 +119,7 @@ def newRide():
 			"where": ["username='{}'".format(parameters["created_by"])]
 		}
 		
-		code = requests.get(cross_ip + "/api/v1/users")
+		code = requests.get(cross_ip + "/api/v1/users", headers = origin)
 
 		rows = []
 		if code.text:
@@ -246,7 +271,7 @@ def joinRide(rideId):
 		if rows_ride.status_code == 400:
 			return make_response("Given ride doesn't exist.", 400)
 
-		rows_user = requests.get(cross_ip + "/api/v1/users")
+		rows_user = requests.get(cross_ip + "/api/v1/users", headers = origin)
 
 		if rows_user.text and parameters["username"] not in rows_user.json():
 			return make_response("Given user doesn't exist.", 400)
@@ -398,4 +423,4 @@ def clear():
 		return make_response("bad request",400)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=4000, host=host)
+	ride_share.run(debug=True, port=port, host=host)
