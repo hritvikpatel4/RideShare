@@ -50,6 +50,7 @@ def construct_query(data):
 	# RESET operation for HTTP requests
 	elif data["operation"] == "RESET":
 		SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+
 	return SQLQuery
 
 def increment_counter():
