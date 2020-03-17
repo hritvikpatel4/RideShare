@@ -81,12 +81,9 @@ def resetcount():
                 "tablename": "counter",
                 "column": "http_requests_count",
                 "val": "0"
-        }
-        try:
-                requests.post(ip+"/api/v1/db/write", json=data)
-                return make_response("",200)
-        except:
-                return make_response("bad request",400)
+    }
+	code = requests.post(ip+"/api/v1/db/write", json=data)
+	return {}, code.status_code
 
 # API 1: To add a new user to the database.
 @ride_share.route("/api/v1/users", methods=["PUT"])

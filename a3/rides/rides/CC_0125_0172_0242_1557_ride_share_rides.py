@@ -346,6 +346,7 @@ def deleteRide(rideId):
 # API 10: API to return the number of rides created
 @ride_share.route("/api/v1/rides/count")
 def returnRidesCreated():
+	increment_counter()
 	data = {
 		"operation": "SELECT",
 		"columns": ["count(*)"],
