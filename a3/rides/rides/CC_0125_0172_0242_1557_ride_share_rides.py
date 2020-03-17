@@ -4,10 +4,10 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:80"
+ip = "http://127.0.0.1:5000"
 cross_ip = "52.20.29.209" # load balancer
 host = "0.0.0.0"
-port = 80
+port = 5000
 
 origin = {"Origin": "52.7.189.65"}
 
@@ -64,8 +64,8 @@ def construct_query(data):
 		SQLQuery = "UPDATE {} SET {} = {} + {};".format(data["tablename"], data["column"], data["column"], data["update_value"])
 
 	# RESET operation for HTTP requests
-        elif data["operation"] == "RESET":
-                SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+	elif data["operation"] == "RESET":
+				SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
 
 	return SQLQuery
 
@@ -202,6 +202,13 @@ def listRides():
     else:
         answer = make_response("", 400)
     return answer
+
+# Fallback function for the below route
+@ride_share.route("/api/v1/rides", methods=["PUT", "DELETE"])
+def fallback_api_v1_rides():
+	print("accessed the fallback function")
+	increment_counter()
+	return {}, 405
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
@@ -343,6 +350,12 @@ def deleteRide(rideId):
 		answer = make_response("", 400)
 	return answer
 
+# Fallback function for the below route
+@ride_share.route("/api/v1/rides/<rideid>", methods=["PUT"])
+def fallback_api_v1_rides_rideid():
+	increment_counter()
+	return {}, 405
+
 # API 10: API to return the number of rides created
 @ride_share.route("/api/v1/rides/count")
 def returnRidesCreated():
@@ -360,6 +373,12 @@ def returnRidesCreated():
 		count =response.json()[0]
 
 	return jsonify(count), 200 
+
+# Fallback function for the below route
+@ride_share.route("/api/v1/rides/count", methods=["PUT", "DELETE", "POST"])
+def fallback_api_v1_rides_count():
+	increment_counter()
+	return {}, 405
 
 # A function to connect the program to a mysql server
 def connectDB(db):
