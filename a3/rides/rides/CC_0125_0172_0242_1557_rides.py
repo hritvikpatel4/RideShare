@@ -4,8 +4,8 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:80"
-cross_ip = "52.20.29.209" # load balancer
+ip = "http://0.0.0.0:80"
+cross_ip = "http://52.20.29.209" # load balancer
 host = "0.0.0.0"
 port = 80
 
@@ -65,7 +65,7 @@ def construct_query(data):
 
 	# RESET operation for HTTP requests
 	elif data["operation"] == "RESET":
-				SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+		SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
 
 	return SQLQuery
 
@@ -344,11 +344,6 @@ def deleteRide(rideId):
 	else:
 		answer = make_response("", 400)
 	return answer
-
-@ride_share.route("/api/v1/rides/", methods=["GET", "POST", "DELETE", "PUT"])
-def RideDetails():
-	increment_counter()
-	return make_response("", 400)
 
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides/<rideid>", methods=["PUT"])
