@@ -5,7 +5,7 @@ services:
     build: ./users
     image: users:latest
     container_name: users
-    command: python CC_0125_0172_0242_1557_ride_share_users.py
+    command: python CC_0125_0172_0242_1557_users.py
     restart: always
     ports:
       - "80:80"

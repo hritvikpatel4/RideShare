@@ -4,7 +4,7 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:80"
+ip = "http://0.0.0.0:80"
 host = "0.0.0.0"
 port = 80
 
@@ -169,11 +169,6 @@ def removeUser(username):
 	else:
 		answer = make_response("", 400)
 	return answer
-
-@ride_share.route("/api/v1/users/", methods=["GET", "PUT", "POST", "DELETE"])
-def RemoveUser():
-	increment_counter()
-	return make_response("", 400)
 
 # Fallback function for the below route
 @ride_share.route("/api/v1/users/<username>", methods=["GET", "PUT", "POST"])
