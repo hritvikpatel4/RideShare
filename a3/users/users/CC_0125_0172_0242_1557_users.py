@@ -50,6 +50,7 @@ def construct_query(data):
 	# RESET operation for HTTP requests
 	elif data["operation"] == "RESET":
 		SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+
 	return SQLQuery
 
 def increment_counter():
@@ -122,6 +123,28 @@ def addUser():
 		answer = make_response("", 400)
 	return answer
 
+@ride_share.route("/api/v1/users",methods=["GET"])
+def list_all():
+	increment_counter()
+	data = {
+		"operation": "SELECT",
+		"columns": ["username"],
+		"tablename": "userdetails",
+		"where":["1=1"]
+	}
+	r1 = requests.post(ip+"/api/v1/db/read", json=data)
+	if not r1.text:
+		return make_response("",204)
+	else:
+		r1=[x[0] for x in r1.json()]
+		return make_response(jsonify(r1),200)
+
+# Fallback function for the below route
+@ride_share.route("/api/v1/users", methods=["POST", "DELETE"])
+def fallback_api_v1_users():
+	increment_counter()
+	return make_response("", 405)
+
 # API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
@@ -147,27 +170,18 @@ def removeUser(username):
 		answer = make_response("", 400)
 	return answer
 
-@ride_share.route("/api/v1/users/", methods=["DELETE"])
-def removeuser():
+@ride_share.route("/api/v1/users/", methods=["GET", "PUT", "POST", "DELETE"])
+def RemoveUser():
+	increment_counter()
+	return make_response("", 400)
+
+# Fallback function for the below route
+@ride_share.route("/api/v1/users/<username>", methods=["GET", "PUT", "POST"])
+def fallback_api_v1_username():
+	increment_counter()
 	return make_response("", 405)
 
-@ride_share.route("/api/v1/users",methods=["GET"])
-def list_all():
-	increment_counter()
-	data = {
-		"operation": "SELECT",
-		"columns": ["username"],
-		"tablename": "userdetails",
-		"where":["1=1"]
-	}
-	r1 = requests.post(ip+"/api/v1/db/read", json=data)
-	if not r1.text:
-		return make_response("",204)
-	else:
-		r1=[x[0] for x in r1.json()]
-		return make_response(jsonify(r1),200)
-
-# A function to connect the program to a mysql server
+# A function to connect the program to a sqlite3 server
 def connectDB(db):
 	conn = None
 	try:
