@@ -4,8 +4,8 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:80"
-cross_ip = "http://52.20.29.209" # load balancer
+ip = "http://127.0.0.1:80"
+cross_ip = "52.20.29.209" # load balancer
 host = "0.0.0.0"
 port = 80
 
@@ -61,11 +61,17 @@ def construct_query(data):
 
 	# UPDATE operation
 	elif data["operation"] == "UPDATE":
-		SQLQuery = "UPDATE {} SET {} = {} + {};".format(data["tablename"], data["column"], data["column"], data["update_value"])
+		SQLQuery = "UPDATE {} SET {} = {} + {}".format(data["tablename"], data["column"], data["column"], data["update_value"])
+		if "where" in data.keys():
+			SQLQuery += " WHERE {}".format(data["where"])
+		SQLQuery += ";"
 
 	# RESET operation for HTTP requests
 	elif data["operation"] == "RESET":
-		SQLQuery = "UPDATE {} SET {} = {};".format(data["tablename"], data["column"], data["val"])
+		SQLQuery = "UPDATE {} SET {} = {}".format(data["tablename"], data["column"], data["val"])
+		if "where" in data.keys():
+			SQLQuery += " WHERE {}".format(data["where"])
+		SQLQuery += ";"
 
 	return SQLQuery
 
@@ -73,8 +79,9 @@ def increment_counter():
 	data = {
 		"operation": "UPDATE",
 		"tablename": "counter",
-		"column": "http_requests_count",
-		"update_value": "1"
+		"column": "count",
+		"update_value": "1",
+		"where": "tag='http_requests'"
 	}
 	requests.post(ip + "/api/v1/db/write", json=data)
 
@@ -85,10 +92,20 @@ def counter():
 		"operation": "SELECT",
 		"columns": "*",
 		"tablename": "counter",
-		"where": ["1=1"]
+		"where": ["tag='http_requests'"]
 	}
 	code = requests.post(ip + "/api/v1/db/read", json=data)
 	return jsonify(code.json()[0]), 200
+
+def update_ride_counter():
+	data = {
+		"operation": "UPDATE",
+		"tablename": "counter",
+		"column": "count",
+		"update_value": "1",
+		"where": "tag='rides_count'"
+	}
+	requests.post(ip + "/api/v1/db/write", json=data)
 
 # Function to reset the HTTP requests
 @ride_share.route("/api/v1/_count", methods=["DELETE"])
@@ -96,8 +113,9 @@ def resetcount():
         data = {
                 "operation": "RESET",
                 "tablename": "counter",
-                "column": "http_requests_count",
-                "val": "0"
+                "column": "count",
+                "val": "0",
+				"where": "tag='http_requests'"
         }
         try:
                 requests.post(ip+"/api/v1/db/write", json=data)
@@ -155,6 +173,7 @@ def newRide():
 				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
 			}
 			requests.post(ip + "/api/v1/db/write", json=data)
+			update_ride_counter()
 			answer = make_response("", 201)
 		else:
 			answer = make_response("", 400)
@@ -206,8 +225,9 @@ def listRides():
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides", methods=["PUT", "DELETE"])
 def fallback_api_v1_rides():
+	print("accessed the fallback function")
 	increment_counter()
-	return make_response("", 405)
+	return {}, 405
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
@@ -254,6 +274,10 @@ def rideDetails(rideId):
 	else:
 		answer = make_response("", 400)
 	return answer
+
+@ride_share.route("/api/v1/rides/")
+def RideDetails():
+	return make_response("", 400)
 
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
@@ -349,33 +373,44 @@ def deleteRide(rideId):
 @ride_share.route("/api/v1/rides/<rideid>", methods=["PUT"])
 def fallback_api_v1_rides_rideid():
 	increment_counter()
-	return make_response("", 405)
+	return {}, 405
 
 # API 10: API to return the number of rides created
 @ride_share.route("/api/v1/rides/count")
 def returnRidesCreated():
-	increment_counter()
 	data = {
 		"operation": "SELECT",
-		"columns": ["count(*)"],
-		"tablename": "ridedetails",
-		"where": ["1=1"]
+		"columns": ["count"],
+		"tablename": "counter",
+		"where": ["tag='rides_count'"]
 	}
-	response = requests.post(ip + "/api/v1/db/read", json=data)
+	code = requests.post(ip + "/api/v1/db/read", json=data)
+	print(code.text)
+	return jsonify(code.json()[0]), 200
 
-	count = 0
-	if response.status_code == 200:
-		count =response.json()[0]
-
-	return jsonify(count), 200 
+# A function to reset the rides counter just like the HTTP (A utility function, existence unknown to others)
+@ride_share.route("/api/v1/rides/count", methods=["DELETE"])
+def resetrides():
+	data = {
+			"operation": "RESET",
+			"tablename": "counter",
+			"column": "tag",
+			"val": "0",
+			"where": "tag='rides_count'"
+	}
+	try:
+			requests.post(ip+"/api/v1/db/write", json=data)
+			return make_response("",200)
+	except:
+			return make_response("bad request",400)
 
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides/count", methods=["PUT", "DELETE", "POST"])
 def fallback_api_v1_rides_count():
 	increment_counter()
-	return make_response("", 405)
+	return {}, 405
 
-# A function to connect the program to a sqlite3 server
+# A function to connect the program to a mysql server
 def connectDB(db):
 	conn = None
 	try:
