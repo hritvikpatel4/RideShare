@@ -149,7 +149,7 @@ def newRide():
 				"operation": "INSERT",
 				"tablename": "ridedetails",
 				"columns": ["created_by", "timestamp", "source", "destination"],
-				"values": [parameters["created_by"], timestamp, parameters["source"], parameters["destination"]]
+				"values": [parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"]]
 			}
 			requests.post(ip + "/api/v1/db/write", json=data)
 			update_ride_counter()
