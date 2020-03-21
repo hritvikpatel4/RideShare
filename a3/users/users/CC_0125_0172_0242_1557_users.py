@@ -82,7 +82,7 @@ def resetcount():
 		"tablename": "counter",
 		"column": "http_requests_count",
 		"val": "0"
-    }
+	}
 	code = requests.post(ip+"/api/v1/db/write", json=data)
 	return {}, code.status_code
 
@@ -230,9 +230,9 @@ def readDB():
 @ride_share.route("/api/v1/db/clear",methods=["POST"])
 def clear():
 	data = {
-			"operation": "DELETE",
-			"tablename": "userdetails",
-			"where": ["1=1"]
+		"operation": "DELETE",
+		"tablename": "userdetails",
+		"where": ["1=1"]
 		}
 	try:
 		requests.post(ip+"/api/v1/db/write", json=data)
