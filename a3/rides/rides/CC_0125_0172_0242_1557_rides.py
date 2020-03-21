@@ -144,27 +144,6 @@ def newRide():
 			rows = code.json()
 
 		if parameters["created_by"] in rows:
-			# Checking if the ride is already created.
-			data = {
-				"operation": "SELECT",
-				"tablename": "ridedetails",
-				"columns": ["timestamp"],
-				"where": ["source='{}'".format(parameters["source"]), "created_by='{}'".format(parameters["created_by"]), "destination='{}'".format(parameters["destination"])]
-			}
-			code = requests.post(ip + "/api/v1/db/read", json=data)
-			
-			rows = []
-			if code.text:
-				rows = code.json()
-				
-			date, time = parameters["timestamp"].split(":")
-			ss, mm, hh = time.split("-")
-			dd, mo, yy = date.split("-")
-			timestamp = "{}-{}-{} {}:{}:{}".format(yy, mo, dd, hh, mm, ss)
-			
-			timestamps = [x[0] for x in rows]
-			if timestamp in timestamps:
-				return make_response("", 400)
 
 			data = {
 				"operation": "INSERT",
@@ -380,9 +359,9 @@ def fallback_api_v1_rides_rideid():
 def returnRidesCreated():
 	data = {
 		"operation": "SELECT",
-		"columns": ["count"],
-		"tablename": "counter",
-		"where": ["tag='rides_count'"]
+		"columns": ["count(*)"],
+		"tablename": "ridedetails",
+		"where": ["1=1"]
 	}
 	code = requests.post(ip + "/api/v1/db/read", json=data)
 	print(code.text)
@@ -394,7 +373,7 @@ def resetrides():
 	data = {
 			"operation": "RESET",
 			"tablename": "counter",
-			"column": "tag",
+			"column": "count",
 			"val": "0",
 			"where": "tag='rides_count'"
 	}
@@ -405,7 +384,7 @@ def resetrides():
 			return make_response("bad request",400)
 
 # Fallback function for the below route
-@ride_share.route("/api/v1/rides/count", methods=["PUT", "DELETE", "POST"])
+@ride_share.route("/api/v1/rides/count", methods=["PUT", "POST"])
 def fallback_api_v1_rides_count():
 	increment_counter()
 	return {}, 405
