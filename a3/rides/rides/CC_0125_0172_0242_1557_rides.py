@@ -4,8 +4,8 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://127.0.0.1:80"
-cross_ip = "52.20.29.209" # load balancer
+ip = "http://0.0.0.0:80"
+cross_ip = "http://18.213.144.177" # load balancer
 host = "0.0.0.0"
 port = 80
 
@@ -110,18 +110,15 @@ def update_ride_counter():
 # Function to reset the HTTP requests
 @ride_share.route("/api/v1/_count", methods=["DELETE"])
 def resetcount():
-        data = {
-                "operation": "RESET",
-                "tablename": "counter",
-                "column": "count",
-                "val": "0",
-				"where": "tag='http_requests'"
-        }
-        try:
-                requests.post(ip+"/api/v1/db/write", json=data)
-                return make_response("",200)
-        except:
-                return make_response("bad request",400)
+	data = {
+		"operation": "RESET",
+		"tablename": "counter",
+		"column": "count",
+		"val": "0",
+		"where": "tag='http_requests'"
+	}
+	code = requests.post(ip+"/api/v1/db/write", json=data)
+	return jsonify({}), code.status_code
 
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
@@ -168,8 +165,8 @@ def listRides():
     source=request.args.get('source')
     destination=request.args.get('destination')
     if source and destination:
-        now = datetime.datetime.now()
-        cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
+        #now = datetime.datetime.now()
+        #cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
         data = {
             "operation": "SELECT",
             "columns": "*",
@@ -206,7 +203,7 @@ def listRides():
 def fallback_api_v1_rides():
 	print("accessed the fallback function")
 	increment_counter()
-	return {}, 405
+	return jsonify({}), 405
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
@@ -352,13 +349,13 @@ def deleteRide(rideId):
 @ride_share.route("/api/v1/rides/<rideid>", methods=["PUT"])
 def fallback_api_v1_rides_rideid():
 	increment_counter()
-	return {}, 405
+	return jsonify({}), 405
 
 # API 10: API to return the number of rides created
 @ride_share.route("/api/v1/rides/count", methods=["GET", "PUT", "POST", "DELETE"])
 def returnRidesCreated():
 	increment_counter()
-	if(requests.method != "GET"):
+	if(request.method != "GET"):
 		return jsonify({}), 405
 
 	data = {
@@ -375,23 +372,23 @@ def returnRidesCreated():
 @ride_share.route("/api/v1/rides/count", methods=["DELETE"])
 def resetrides():
 	data = {
-			"operation": "RESET",
-			"tablename": "counter",
-			"column": "count",
-			"val": "0",
-			"where": "tag='rides_count'"
+		"operation": "RESET",
+		"tablename": "counter",
+		"column": "count",
+		"val": "0",
+		"where": "tag='rides_count'"
 	}
 	try:
-			requests.post(ip+"/api/v1/db/write", json=data)
-			return make_response("",200)
+		requests.post(ip+"/api/v1/db/write", json=data)
+		return make_response("",200)
 	except:
-			return make_response("bad request",400)
+		return make_response("bad request",400)
 
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides/count", methods=["PUT", "POST"])
 def fallback_api_v1_rides_count():
 	increment_counter()
-	return {}, 405
+	return jsonify({}), 405
 
 # A function to connect the program to a mysql server
 def connectDB(db):

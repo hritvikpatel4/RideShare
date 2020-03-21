@@ -78,10 +78,10 @@ def counter():
 @ride_share.route("/api/v1/_count", methods=["DELETE"])
 def resetcount():
 	data = {
-                "operation": "RESET",
-                "tablename": "counter",
-                "column": "http_requests_count",
-                "val": "0"
+		"operation": "RESET",
+		"tablename": "counter",
+		"column": "http_requests_count",
+		"val": "0"
     }
 	code = requests.post(ip+"/api/v1/db/write", json=data)
 	return {}, code.status_code
