@@ -355,8 +355,12 @@ def fallback_api_v1_rides_rideid():
 	return {}, 405
 
 # API 10: API to return the number of rides created
-@ride_share.route("/api/v1/rides/count")
+@ride_share.route("/api/v1/rides/count", methods=["GET", "PUT", "POST", "DELETE"])
 def returnRidesCreated():
+	increment_counter()
+	if(requests.method != "GET"):
+		return jsonify({}), 405
+
 	data = {
 		"operation": "SELECT",
 		"columns": ["count(*)"],
