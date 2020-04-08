@@ -1,0 +1,58 @@
+version: '3.1'
+
+services:
+  zoo:
+    image: zookeeper
+    restart: on-failure
+    hostname: zoo
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
+
+  rmq:
+    image: rabbitmq:3.8.3-alpine
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "sleep 20 && python producer.py"
+    volumes:
+    - .:/code
+    links:
+    - rmq
+    - zoo
+    depends_on:
+    - rmq
+    - zoo
+    restart: on-failure
+
+  consumer:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    command: sh -c "sleep 15 && python consumer.py"
+    volumes:
+    - .:/code
+    links:
+    - rmq
+    - zoo
+    depends_on:
+    - rmq
+    - zoo
+    restart: on-failure
+
+  orchestrator:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    command: sh -c "python zk_orch.py"
+    volumes:
+        - .:/code
+    depends_on:
+        - zoo
+    restart: on-failure    
+
+  
