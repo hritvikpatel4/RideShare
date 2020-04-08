@@ -1,2 +1,2 @@
-*.py
-*.db
+project/*.py
+project/*.db
