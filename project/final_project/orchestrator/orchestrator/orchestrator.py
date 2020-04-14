@@ -6,19 +6,22 @@ import uuid
 
 ip = ""
 ride_share = Flask(__name__)
-port = 5050
-host = "127.0.0.1"
+port = 80
+host = "0.0.0.0"
 
-connection = pika.BlockingConnection(
-			pika.ConnectionParameters(host='localhost')
-		)
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+print("connection:", connection)
+
 channel = connection.channel()
+
+def on_open():
+	print("Connection with rabbitmq established")
 
 class OrchestratorRpcClient():
 
 	def __init__(self):
 		self.connection = pika.BlockingConnection(
-			pika.ConnectionParameters(host='localhost')
+			pika.ConnectionParameters(host='rabbitmq')
 		)
 
 		self.channel = self.connection.channel()
@@ -36,7 +39,10 @@ class OrchestratorRpcClient():
 		if self.corr_id == props.correlation_id:
 			print("body:", body)
 			body = body.decode('utf-8')
-			self.response = ast.literal_eval(body)
+			if body:
+				self.response = ast.literal_eval(body)
+			else:
+				self.response = body
 			print(self.response)
 
 	def call(self, query):

@@ -4,6 +4,8 @@ import sys
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='rmq'))
+print("Connection established with rmq")
+
 channel = connection.channel()
 
 channel.queue_declare(queue='task_queue', durable=True)

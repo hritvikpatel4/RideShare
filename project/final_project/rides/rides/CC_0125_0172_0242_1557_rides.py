@@ -2,6 +2,9 @@ from flask import Flask, jsonify, request, make_response, redirect
 import csv, string, collections, datetime
 from sqlite3 import connect
 import requests
+import sys
+
+print(sys.version)
 
 ride_share = Flask(__name__)
 ip = "http://0.0.0.0:5050"

@@ -1,7 +1,7 @@
 from sqlite3 import connect
 import pika
-from flask import Flask, jsonify, request, make_response, redirect
 import csv, string, collections, datetime
+
 
 # A function to connect the program to a mysql server
 def connectDB(db):
@@ -40,8 +40,11 @@ def service_request(ch, method, properties, body):
 				)
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost')
+    pika.ConnectionParameters(host='rabbitmq')
 )
+
+print("Connection (slave): {}".format(connection))
+
 channel = connection.channel()
 
 channel.queue_declare(queue='readQ', exclusive=True)

@@ -1,6 +1,8 @@
-from flask import jsonify
 from sqlite3 import connect
 import pika
+import sys
+
+print("Master python version: {}".format(sys.version))
 
 # A function to connect the program to a mysql server
 def connectDB(db):
@@ -26,8 +28,11 @@ def service_request(ch, method, properties, body):
 	return "", 200
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost')
+    pika.ConnectionParameters(host='rabbitmq')
 )
+
+print("Connection: {}".format(connection))
+
 channel = connection.channel()
 
 channel.queue_declare(queue='writeQ', exclusive=True)
