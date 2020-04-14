@@ -1,12 +1,13 @@
+from time import sleep
 from flask import Flask, jsonify, request, make_response
 import csv, string, collections, datetime
 from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:5050"
+ip = "http://34.226.142.9:80"
 host = "0.0.0.0"
-port = 5025
+port = 80
 
 def increment_counter():
 	data = {
@@ -16,7 +17,12 @@ def increment_counter():
 		"update_value": "1",
 		"where": "tag='http_requests'"
 	}
-	requests.post(ip + "/api/v1/db/write", json=data)
+	try:
+			sleep(1)
+			requests.post(ip + "/api/v1/db/write", json=data)
+			return None
+	except:
+			print("Bruh! lot of traffic. Gimme 5")
 
 def update_ride_counter():
 	data = {
