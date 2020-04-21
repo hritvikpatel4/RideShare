@@ -19,6 +19,18 @@ def service_request(ch, method, properties, body):
 	cursor = conn.cursor()
 	cursor.execute("PRAGMA foreign_keys = 1")
 	body = body.decode("utf-8")
+	connection = pika.BlockingConnection(
+		pika.ConnectionParameters(host='localhost')
+	)
+
+	#sync after read is acknowledge
+	channel = connection.channel()
+
+	channel.basic_publish(exchange='syncQ', routing_key='', body=body)
+
+	print(" [x] Sent %r" % body)
+
+	connection.close()
 
 	cursor.execute(body)
 	conn.commit()
@@ -28,7 +40,7 @@ def service_request(ch, method, properties, body):
 	return "", 200
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq')
+    pika.ConnectionParameters(host='localhost')
 )
 
 print("Connection: {}".format(connection))
@@ -36,6 +48,9 @@ print("Connection: {}".format(connection))
 channel = connection.channel()
 
 channel.queue_declare(queue='writeQ', exclusive=True)
+#declare sync queue
+channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
+
 print(' [*] Waiting for messages. To exit press CTRL+C')
 
 channel.basic_qos(prefetch_count=1)
