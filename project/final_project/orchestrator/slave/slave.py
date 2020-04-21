@@ -12,6 +12,18 @@ def connectDB(db):
 		print("Error in connecting to the database")
 	return conn
 
+def sync_callback(ch, method, properties, body):
+	conn = connectDB('ride_share.db')
+	cursor = conn.cursor()
+		
+	body = body.decode("utf-8")
+
+	cursor.execute(body)
+	conn.commit()
+	cursor.close()
+	conn.close()
+
+
 def service_request(ch, method, properties, body):
 		print(" [x] Received %r" % body)
 		conn = connectDB('ride_share.db')
@@ -47,10 +59,27 @@ print("Connection (slave): {}".format(connection))
 
 channel = connection.channel()
 
+#sync first
+#declare syn queue
+channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
+
+result = channel.queue_declare(queue='', exclusive=True)
+queue_name = result.method.queue
+
+channel.queue_bind(exchange='syncQ', queue=queue_name)
+
+#read next
 channel.queue_declare(queue='readQ', exclusive=True)
+
 print(' [*] Waiting for messages. To exit press CTRL+C')
 
 channel.basic_qos(prefetch_count=1)
+
+channel.basic_consume(
+	queue=queue_name, 
+	auto_ack=True,
+	on_message_callback=sync_callback
+)
 
 channel.basic_consume(
 	queue='readQ', 
