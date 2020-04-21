@@ -20,7 +20,7 @@ def service_request(ch, method, properties, body):
 	cursor.execute("PRAGMA foreign_keys = 1")
 	body = body.decode("utf-8")
 	connection = pika.BlockingConnection(
-		pika.ConnectionParameters(host='localhost')
+		pika.ConnectionParameters(host='rabbitmq')
 	)
 
 	#sync after read is acknowledge
@@ -40,7 +40,7 @@ def service_request(ch, method, properties, body):
 	return "", 200
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost')
+    pika.ConnectionParameters(host='rabbitmq')
 )
 
 print("Connection: {}".format(connection))
