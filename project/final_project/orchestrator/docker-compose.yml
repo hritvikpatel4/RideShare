@@ -1,15 +1,16 @@
 version: '3'
 
 services:
-  # zoo:
-  #   image: zookeeper
-  #   restart: on-failure
-  #   hostname: zoo
-  #   ports:
-  #     - 2181:2181
-  #   environment:
-  #     ZOO_MY_ID: 1
-  #     ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
+  zoo:
+    image: zookeeper
+    container_name: zoo
+    restart: on-failure
+    hostname: zoo
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
 
   rabbitmq:
     container_name: rabbitmq
@@ -22,6 +23,7 @@ services:
     command: sh -c "sleep 20 && python master.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
+      - MASTER=1
     volumes:
     - ./master:/master
     links:
@@ -37,6 +39,7 @@ services:
     command: sh -c "sleep 20 && python slave.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
+      - MASTER=0
     volumes:
     - ./slave:/slave
     links:

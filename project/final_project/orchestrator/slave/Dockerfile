@@ -1,4 +1,4 @@
-FROM python:3.7-slim-stretch
+FROM python
 
 # This keeps Python from buffering stdin/stdout
 ENV PYTHONUNBUFFERED 1
