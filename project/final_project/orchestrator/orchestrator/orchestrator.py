@@ -3,6 +3,8 @@ import requests
 import ast
 import pika
 import uuid
+import docker
+
 
 ip = ""
 ride_share = Flask(__name__)
@@ -157,6 +159,40 @@ def clear():
 		return make_response("",200)
 	except:
 		return make_response("bad request",400)
+
+#docker related APIs
+@ride_share.route("/api/v1/crash/master/<master_pid>",methods=["POST"])
+def kill_master(master_pid):
+	client=docker.from_env()
+	for container in client.containers.list():
+		if(master_pid==container.id):
+			container.kill()
+			return make_response("",200)
+	return make_response("no container with this pid exists",400)
+
+@ride_share.route("/api/v1/crash/slave/<master_pid>",methods=["POST"])
+def kill_slave(master_pid):
+	client=docker.from_env()
+	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16))
+	if(len(pids)==0):
+		return make_response("no containers open",400)
+
+	if pids[-1].id==master_pid:
+		if len(pids)<2:
+			return make_response("no slave containers open",400)
+		pids[-2].kill()
+		return make_response("",200)
+	
+	else:
+		pids[-1].kill()
+		return make_response("",200)
+
+@ride_share.route("/api/v1/worker/list",methods=["POST"])
+def list_all():
+	client=docker.from_env()
+	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16))
+	pids=[x.id for x in pids]
+	return jsonify(pids)
 
 if __name__ == '__main__':
 	ride_share.run(debug=True, port=port, host=host)
