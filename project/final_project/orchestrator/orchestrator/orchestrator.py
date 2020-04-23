@@ -4,7 +4,10 @@ import ast
 import pika
 import uuid
 import docker
+from kazoo import KazooClient
+import logging
 
+logging.basicConfig()
 
 ip = ""
 ride_share = Flask(__name__)
@@ -15,6 +18,9 @@ connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
 print("connection:", connection)
 
 channel = connection.channel()
+
+zk_con = KazooClient(hosts="zoo")
+zk_con.start()
 
 def on_open():
 	print("Connection with rabbitmq established")
