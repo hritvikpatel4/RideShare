@@ -6,6 +6,8 @@ import uuid
 import docker
 from kazoo import KazooClient
 import logging
+import threading
+import time
 
 logging.basicConfig()
 
@@ -22,8 +24,51 @@ channel = connection.channel()
 zk_con = KazooClient(hosts="zoo")
 zk_con.start()
 
-def on_open():
-	print("Connection with rabbitmq established")
+timer = None
+
+def fn():
+    global timer
+    if not timer:
+        timer = threading.Thread(target=timerfn)
+        timer.start()
+
+# reset http count code
+def resetHttpCount():
+    print("reset")
+
+# increment http count code
+def incrementHttpCount():
+    print("increment count")
+    global timer
+    if not timer:
+        print("trigger")
+        fn()
+
+def timerfn():
+    while True:
+        time.sleep(120)
+		count = getHttpCount()
+		resetHttpCount()
+		res = count // 20
+		cl = docker.from_env()
+		slaves = cl.containers.list()
+		for cont in slaves:
+			if cont.name == 'master':
+				slaves.remove(cont)
+				break
+		slaves = sorted(slaves, key=lambda x:int(x.id,16), reverse=True)
+		if res > len(slaves):
+			x = res - len(slaves)
+			while x:
+				image = slaves[-1].image
+				#image = cl.images.get('slaves:latest')
+				cl.containers.run(image, 'sleep 25 && python master_slave.py')
+				x -= 1
+		else:
+			x = slaves - res
+			killslaves = slaves[:x]
+			for cont in killslaves:
+				cont.kill()
 
 class OrchestratorRpcClient():
 
@@ -156,9 +201,9 @@ def readDB():
 @ride_share.route("/api/v1/db/clear",methods=["POST"])
 def clear():
 	data = {
-			"operation": "DELETE",
-			"tablename": "ridedetails",
-			"where": ["1=1"]
+		"operation": "DELETE",
+		"tablename": "ridedetails",
+		"where": ["1=1"]
 		}
 	try:
 		requests.post(ip+"/api/v1/db/write", json=data)
@@ -166,32 +211,31 @@ def clear():
 	except:
 		return make_response("bad request",400)
 
-#docker related APIs
-@ride_share.route("/api/v1/crash/master/<master_pid>",methods=["POST"])
-def kill_master(master_pid):
+# Kill master
+@ride_share.route("/api/v1/crash/master",methods=["POST"])
+def kill_master():
 	client=docker.from_env()
 	for container in client.containers.list():
-		if(master_pid==container.id):
+		if(container.name=='master'):
+			res = make_response(jsonify(container.id),200)
 			container.kill()
-			return make_response("",200)
-	return make_response("no container with this pid exists",400)
+	return res
 
-@ride_share.route("/api/v1/crash/slave/<master_pid>",methods=["POST"])
+# Kill slave
+@ride_share.route("/api/v1/crash/slave",methods=["POST"])
 def kill_slave(master_pid):
 	client=docker.from_env()
-	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16))
+	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16),reverse=True)
 	if(len(pids)==0):
 		return make_response("no containers open",400)
-
-	if pids[-1].id==master_pid:
-		if len(pids)<2:
-			return make_response("no slave containers open",400)
-		pids[-2].kill()
-		return make_response("",200)
 	
-	else:
-		pids[-1].kill()
-		return make_response("",200)
+	for pid in pids:
+		if(pid.name=='slave'):
+			res = make_response(jsonify(pid.id),200)
+			pid.kill()
+			break
+	
+	return res
 
 @ride_share.route("/api/v1/worker/list",methods=["POST"])
 def list_all():
