@@ -25,7 +25,7 @@ services:
     image: rabbitmq:3.8.3
     restart: on-failure
   
-  # if running locally then change the ports of the orchestrator to "5050:80" to avoid port conflicts and resulting in build failure
+  # if running locally then change the ports of the orchestrator to "5050:8000" to avoid port conflicts and resulting in build failure
 
   orchestrator:
     build: ./orchestrator
@@ -33,7 +33,7 @@ services:
     container_name: orchestrator
     command: sh -c "sleep 20 && python orchestrator.py"
     ports:
-      - "5050:8000"
+      - "80:8000"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
     volumes:
