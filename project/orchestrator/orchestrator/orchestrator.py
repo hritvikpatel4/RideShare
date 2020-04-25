@@ -4,6 +4,7 @@ import ast
 import pika
 import uuid
 import docker
+from kazoo.client import KazooClient
 import logging
 import threading
 import time
@@ -11,7 +12,7 @@ from sqlite3 import connect
 
 logging.basicConfig()
 
-print("Shut the FUCK UP AND RUN BITCH!")
+print("If this prints, the code is running")
 
 ip = ""
 ride_share = Flask(__name__)
@@ -20,6 +21,9 @@ host = "0.0.0.0"
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
 print("connection:", connection)
+
+zk_con = KazooClient(hosts="zoo")
+zk_con.start()
 
 channel = connection.channel()
 

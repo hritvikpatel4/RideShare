@@ -1,12 +1,12 @@
-FROM python:3.7-slim-stretch
+FROM python
 
 # This keeps Python from buffering stdin/stdout
 ENV PYTHONUNBUFFERED 1
 # This prevents Python from writing out pyc files
 ENV PYTHONDONTWRITEBYTECODE 1
 
-ADD . /master
-WORKDIR /master
+ADD . /slave
+WORKDIR /slave
 
 EXPOSE 8001
 

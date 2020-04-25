@@ -1,6 +1,6 @@
 from sqlite3 import connect
 import pika
-from kazoo import KazooClient
+from kazoo.client import KazooClient
 import logging
 import csv, string, collections, datetime
 import docker
@@ -24,7 +24,7 @@ def exec_logic(MASTER):
     # If it is the master container
     if MASTER == '1':
         print("\n\n-----MASTER CODE RUNNING-----\n\n")
-        def service_request(ch, method, properties, body):
+        def service_request_master(ch, method, properties, body):
             print(" [x] Received %s" % body)
             conn = connectDB('ride_share.db')
             cursor = conn.cursor()
@@ -62,7 +62,7 @@ def exec_logic(MASTER):
 
         channel.basic_qos(prefetch_count=1)
 
-        channel.basic_consume(queue='writeQ', auto_ack=True, on_message_callback=service_request)
+        channel.basic_consume(queue='writeQ', auto_ack=True, on_message_callback=service_request_master)
 
         channel.start_consuming()
 
@@ -78,7 +78,7 @@ def exec_logic(MASTER):
             cursor.close()
             conn.close()
 
-        def service_request(ch, method, properties, body):
+        def service_request_slave(ch, method, properties, body):
                 print(" [x] Received %r" % body)
                 conn = connectDB('ride_share.db')
                 cursor = conn.cursor()
@@ -120,7 +120,7 @@ def exec_logic(MASTER):
 
         channel.basic_consume(queue=queue_name, auto_ack=True, on_message_callback=sync_callback)
 
-        channel.basic_consume(queue='readQ', on_message_callback=service_request, auto_ack=True)
+        channel.basic_consume(queue='readQ', on_message_callback=service_request_slave, auto_ack=True)
 
         channel.start_consuming()
 

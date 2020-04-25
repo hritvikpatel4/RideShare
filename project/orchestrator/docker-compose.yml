@@ -1,43 +1,31 @@
 version: '3'
 
-services:
+# the build order is guaranteed to be
+# 1. zoo
+# 2. rabbitmq
+# 3. orchestrator
+# 4. master
+# 5. slave
 
+services:
+  zoo:
+    image: zookeeper
+    container_name: zoo
+    restart: on-failure
+    hostname: zoo
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
+  
   rabbitmq:
     container_name: rabbitmq
+    hostname: rabbitmq
     image: rabbitmq:3.8.3
     restart: on-failure
-
-  master:
-    build: ./master
-    image: master:latest
-    container_name: master
-    command: sh -c "sleep 20 && python master.py"
-    environment:
-      - TEAM_NAME=CC_0125_0172_0242_1557
-      - MASTER=1
-    volumes:
-    - ./master:/master
-    links:
-    - rabbitmq
-    depends_on:
-    - rabbitmq
-    restart: on-failure
-
-  slave:
-    build: ./slave
-    image: slave:latest
-    container_name: slave
-    command: sh -c "sleep 20 && python slave.py"
-    environment:
-      - TEAM_NAME=CC_0125_0172_0242_1557
-      - MASTER=0
-    volumes:
-    - ./slave:/slave
-    links:
-    - rabbitmq
-    depends_on:
-    - rabbitmq
-    restart: on-failure
+  
+  # if running locally then change the ports of the orchestrator to "5050:80" to avoid port conflicts and resulting in build failure
 
   orchestrator:
     build: ./orchestrator
@@ -50,20 +38,84 @@ services:
       - TEAM_NAME=CC_0125_0172_0242_1557
     volumes:
       - ./orchestrator:/orchestrator
+    links:
+      - rabbitmq
+      - zoo
+    depends_on:
+      - rabbitmq 
+      - zoo
+    restart: on-failure
+  
+  master:
+    build: ./worker
+    image: master:latest
+    container_name: master
+    command: sh -c "sleep 25 && python master_slave.py"
+    environment:
+      - TEAM_NAME=CC_0125_0172_0242_1557
+      - MASTER=1
+    volumes:
+      - ./master:/master
+    links:
+      - rabbitmq
+      - zoo
+    depends_on:
+      - rabbitmq
+      - zoo
     restart: on-failure
 
-# -------------------------REFERENCE ONLY-------------------------
+  slave:
+    build: ./worker
+    image: slave:latest
+    container_name: slave
+    command: sh -c "sleep 30 && python master_slave.py"
+    environment:
+      - TEAM_NAME=CC_0125_0172_0242_1557
+      - MASTER=0
+    volumes:
+      - ./slave:/slave
+    links:
+      - rabbitmq
+      - zoo
+    depends_on:
+      - rabbitmq
+      - zoo
+    restart: on-failure
 
-# services:
-#   rides:
-#     build: ./rides
-#     image: rides:latest
-#     container_name: rides
-#     command: python CC_0125_0172_0242_1557_rides.py
-#     restart: always
-#     ports:
-#       - "80:80"
-#     environment:
-#       - TEAM_NAME=CC_0125_0172_0242_1557
-#     volumes:
-#       - ./rides:/rides
+# do not use the below configuration
+
+  # master:
+  #   build: ./master
+  #   image: master:latest
+  #   container_name: master
+  #   command: sh -c "sleep 20 && python master_slave.py"
+  #   environment:
+  #   - TEAM_NAME=CC_0125_0172_0242_1557
+  #   - MASTER=1
+  #   volumes:
+  #   - ./master:/master
+  #   links:
+  #   - rabbitmq
+  #   - zoo
+  #   depends_on:
+  #   - rabbitmq
+  #   - zoo
+  #   restart: on-failure
+
+  # slave:
+  #   build: ./slave
+  #   image: slave:latest
+  #   container_name: slave
+  #   command: sh -c "sleep 25 && python master_slave.py"
+  #   environment:
+  #   - TEAM_NAME=CC_0125_0172_0242_1557
+  #   - MASTER=0
+  #   volumes:
+  #   - ./slave:/slave
+  #   links:
+  #   - rabbitmq
+  #   - zoo
+  #   depends_on:
+  #   - rabbitmq
+  #   - zoo
+  #   restart: on-failure
