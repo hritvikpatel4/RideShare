@@ -12,7 +12,7 @@ from sqlite3 import connect
 
 logging.basicConfig()
 
-print("If this prints, the code is running")
+print("\n\n-----ORCHESTRATOR CODE RUNNING-----\n\n")
 
 ip = ""
 ride_share = Flask(__name__)
@@ -22,8 +22,12 @@ host = "0.0.0.0"
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
 print("connection:", connection)
 
-zk_con = KazooClient(hosts="zoo")
-zk_con.start()
+zk = KazooClient(hosts="zoo")
+zk.start()
+
+#zk.ensure_path('/root')
+
+#zk.create('/root')
 
 channel = connection.channel()
 
@@ -222,35 +226,68 @@ def clear():
 # Kill master
 @ride_share.route("/api/v1/crash/master",methods=["POST"])
 def kill_master():
-	client=docker.from_env()
-	for container in client.containers.list():
-		if(container.name=='master'):
-			res = make_response(jsonify(container.id),200)
+	client = docker.from_env()
+	containers = client.containers.list()
+	
+	for container in containers:
+		if(container.name == 'master'):
+			process = container.top()
+			pid = process['Processes'][0][1]
+			res = make_response(jsonify(pid),200)
 			container.kill()
+	
 	return res
 
 # Kill slave
 @ride_share.route("/api/v1/crash/slave",methods=["POST"])
 def kill_slave(master_pid):
-	client=docker.from_env()
-	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16),reverse=True)
-	if(len(pids)==0):
-		return make_response("no containers open",400)
+	client = docker.from_env()
+	containers = client.containers.list()
 	
-	for pid in pids:
-		if(pid.name=='slave'):
-			res = make_response(jsonify(pid.id),200)
-			pid.kill()
-			break
+	pids = []
+	rejected = ['zoo', 'rabbitmq', 'orchestrator', 'master']
 	
+	for container in containers:
+		if container.name not in rejected:
+			process = container.top()
+			pids.append(int(process['Processes'][0][1]))
+	
+	# Sort in ascending order and then compare the pid of each container to the last element in the sorted list
+	pids.sort()
+	
+	if len(pids) == 0:
+		res = make_response("no slave left to kill", 400)
+	
+	else:
+		for container in containers:
+			if container.name not in rejected:
+				process = container.top()
+				pid = process['Processes'][0][1]
+				
+				if int(pid) == pids[-1]:
+					res = make_response(jsonify(pid),200)
+					container.kill()
+					break
+
 	return res
 
 @ride_share.route("/api/v1/worker/list",methods=["POST"])
 def list_all():
-	client=docker.from_env()
-	pids=sorted(client.containers.list(),key=lambda x:int(x.id,16))
-	pids=[x.id for x in pids]
-	return jsonify(pids)
+	client = docker.from_env()
+	containers = client.containers.list()
+	
+	pids = []
+	rejected = ['zoo', 'rabbitmq', 'orchestrator']
+	
+	for container in containers:
+		if container.name not in rejected:
+			process = container.top()
+			pids.append(int(process['Processes'][0][1]))
+	
+	pids.sort()
+	
+	res = make_response(jsonify(pids), 200)
+	return res
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=port, host=host)
+	ride_share.run(debug = True, port = port, host = host)

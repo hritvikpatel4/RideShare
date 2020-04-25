@@ -33,7 +33,7 @@ services:
     container_name: orchestrator
     command: sh -c "sleep 20 && python orchestrator.py"
     ports:
-      - "80:80"
+      - "5050:8000"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
     volumes:
@@ -48,14 +48,14 @@ services:
   
   master:
     build: ./worker
-    image: master:latest
+    image: worker:latest
     container_name: master
     command: sh -c "sleep 25 && python master_slave.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
       - MASTER=1
     volumes:
-      - ./master:/master
+      - ./worker:/worker
     links:
       - rabbitmq
       - zoo
@@ -66,14 +66,14 @@ services:
 
   slave:
     build: ./worker
-    image: slave:latest
+    image: worker:latest
     container_name: slave
     command: sh -c "sleep 30 && python master_slave.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
       - MASTER=0
     volumes:
-      - ./slave:/slave
+      - ./worker:/worker
     links:
       - rabbitmq
       - zoo

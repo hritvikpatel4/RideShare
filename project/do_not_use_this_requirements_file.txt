@@ -1,5 +1,0 @@
-flask
-requests
-docker
-pika
-kazoo

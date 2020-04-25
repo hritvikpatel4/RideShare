@@ -5,8 +5,8 @@ ENV PYTHONUNBUFFERED 1
 # This prevents Python from writing out pyc files
 ENV PYTHONDONTWRITEBYTECODE 1
 
-ADD . /slave
-WORKDIR /slave
+ADD . /worker
+WORKDIR /worker
 
 EXPOSE 8001
 
