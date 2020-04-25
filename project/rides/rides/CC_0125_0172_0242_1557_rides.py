@@ -7,8 +7,8 @@ import sys
 print(sys.version)
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:5050"
-cross_ip = "http://127.0.0.1:5025" # load balancer
+ip = "http://0.0.0.0:5050"		   	# insert the orchestrator IP here
+cross_ip = "http://127.0.0.1:5025" 	# load balancer
 host = "0.0.0.0"
 port = 5000
 
@@ -27,56 +27,10 @@ def get_area_from_number(a):
             line_count+=1
         return -1
 
-def increment_counter():
-	data = {
-		"operation": "UPDATE",
-		"tablename": "counter",
-		"column": "count",
-		"update_value": "1",
-		"where": "tag='http_requests'"
-	}
-	requests.post(ip + "/api/v1/db/write", json=data)
-
-def update_ride_counter():
-	data = {
-		"operation": "UPDATE",
-		"tablename": "counter",
-		"column": "count",
-		"update_value": "1",
-		"where": "tag='rides_count'"
-	}
-	requests.post(ip + "/api/v1/db/write", json=data)
-
-# Function to count the number of HTTP requests
-@ride_share.route("/api/v1/_count")
-def counter():
-	data = {
-		"operation": "SELECT",
-		"columns": "*",
-		"tablename": "counter",
-		"where": ["tag='http_requests'"]
-	}
-	code = requests.post(ip + "/api/v1/db/read", json=data)
-	return jsonify(code.json()[0]), 200
-
-# Function to reset the HTTP requests
-@ride_share.route("/api/v1/_count", methods=["DELETE"])
-def resetcount():
-	data = {
-		"operation": "RESET",
-		"tablename": "counter",
-		"column": "count",
-		"val": "0",
-		"where": "tag='http_requests'"
-	}
-	code = requests.post(ip+"/api/v1/db/write", json=data)
-	return jsonify({}), code.status_code
-
-
 # API 3: create a new ride
 @ride_share.route("/api/v1/rides", methods=["POST"])
 def newRide():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	parameters = request.get_json()
 
 	if "created_by" in parameters.keys() and "timestamp" in parameters.keys() and "source" in parameters.keys() and "destination" in parameters.keys() and parameters["source"] != parameters["destination"]:
@@ -102,7 +56,6 @@ def newRide():
 				"values": [parameters["created_by"], parameters["timestamp"], parameters["source"], parameters["destination"]]
 			}
 			requests.post(ip + "/api/v1/db/write", json=data)
-			update_ride_counter()
 			answer = make_response("", 201)
 		else:
 			answer = make_response("", 400)
@@ -114,7 +67,7 @@ def newRide():
 # API 4: List all the upcoming rides for a given source and destination
 @ride_share.route('/api/v1/rides', methods=["GET"])
 def listRides():
-    increment_counter()
+    requests.post(ip + "/api/v1/_count")
     source=request.args.get('source')
     destination=request.args.get('destination')
     if source and destination:
@@ -155,13 +108,13 @@ def listRides():
 @ride_share.route("/api/v1/rides", methods=["PUT", "DELETE"])
 def fallback_api_v1_rides():
 	print("accessed the fallback function")
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	return jsonify({}), 405
 
 # API 5: List all the details of a given ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["GET"])
 def rideDetails(rideId):
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	data = {
 		"operation": "SELECT",
 		"columns": "*",
@@ -211,7 +164,7 @@ def RideDetails():
 # API 6: Join an existing ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["POST"])
 def joinRide(rideId):
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	parameters = request.get_json()
 
 	if "username" in parameters.keys():
@@ -276,7 +229,7 @@ def joinRide(rideId):
 # API 7: Delete a ride
 @ride_share.route("/api/v1/rides/<rideId>", methods=["DELETE"])
 def deleteRide(rideId):
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	data = {
 		"operation": "SELECT",
 		"columns": ["rideid"],
@@ -301,13 +254,13 @@ def deleteRide(rideId):
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides/<rideid>", methods=["PUT"])
 def fallback_api_v1_rides_rideid():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	return jsonify({}), 405
 
 # API 10: API to return the number of rides created
-@ride_share.route("/api/v1/rides/count", methods=["GET", "PUT", "POST", "DELETE"])
+@ride_share.route("/api/v1/rides/count", methods=["GET", "DELETE"])
 def returnRidesCreated():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	if(request.method != "GET"):
 		return jsonify({}), 405
 
@@ -340,7 +293,7 @@ def resetrides():
 # Fallback function for the below route
 @ride_share.route("/api/v1/rides/count", methods=["PUT", "POST"])
 def fallback_api_v1_rides_count():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	return jsonify({}), 405
 
 if __name__ == '__main__':

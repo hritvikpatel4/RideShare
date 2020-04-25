@@ -9,60 +9,10 @@ ip = "http://34.226.142.9:80"
 host = "0.0.0.0"
 port = 80
 
-def increment_counter():
-	data = {
-		"operation": "UPDATE",
-		"tablename": "counter",
-		"column": "count",
-		"update_value": "1",
-		"where": "tag='http_requests'"
-	}
-	try:
-			sleep(1)
-			requests.post(ip + "/api/v1/db/write", json=data)
-			return None
-	except:
-			print("Bruh! lot of traffic. Gimme 5")
-
-def update_ride_counter():
-	data = {
-		"operation": "UPDATE",
-		"tablename": "counter",
-		"column": "count",
-		"update_value": "1",
-		"where": "tag='rides_count'"
-	}
-	requests.post(ip + "/api/v1/db/write", json=data)
-
-# Function to count the number of HTTP requests
-@ride_share.route("/api/v1/_count")
-def counter():
-	data = {
-		"operation": "SELECT",
-		"columns": "*",
-		"tablename": "counter",
-		"where": ["tag='http_requests'"]
-	}
-	code = requests.post(ip + "/api/v1/db/read", json=data)
-	return jsonify(code.json()[0]), 200
-
-# Function to reset the HTTP requests
-@ride_share.route("/api/v1/_count", methods=["DELETE"])
-def resetcount():
-	data = {
-		"operation": "RESET",
-		"tablename": "counter",
-		"column": "count",
-		"val": "0",
-		"where": "tag='http_requests'"
-	}
-	code = requests.post(ip+"/api/v1/db/write", json=data)
-	return jsonify({}), code.status_code
-
 # API 1: To add a new user to the database.
 @ride_share.route("/api/v1/users", methods=["PUT"])
 def addUser():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	parameters = request.get_json()	
 
 	if "username" in parameters.keys() and "password" in parameters.keys() and len(parameters["password"]) == 40:
@@ -99,7 +49,7 @@ def addUser():
 
 @ride_share.route("/api/v1/users",methods=["GET"])
 def list_all():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	data = {
 		"operation": "SELECT",
 		"columns": ["username"],
@@ -116,13 +66,13 @@ def list_all():
 # Fallback function for the below route
 @ride_share.route("/api/v1/users", methods=["POST", "DELETE"])
 def fallback_api_v1_users():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	return make_response("", 405)
 
 # API 2: To delete an existing user from the database.
 @ride_share.route("/api/v1/users/<username>", methods=["DELETE"])
 def removeUser(username):
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	data = {
 		"operation": "SELECT",
 		"columns": "*",
@@ -147,7 +97,7 @@ def removeUser(username):
 # Fallback function for the below route
 @ride_share.route("/api/v1/users/<username>", methods=["GET", "PUT", "POST"])
 def fallback_api_v1_username():
-	increment_counter()
+	requests.post(ip + "/api/v1/_count")
 	return make_response("", 405)
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ from sqlite3 import connect
 
 logging.basicConfig()
 
-ip = "http://127.0.0.1"
+ip = ""
 ride_share = Flask(__name__)
 port = 80
 host = "0.0.0.0"
