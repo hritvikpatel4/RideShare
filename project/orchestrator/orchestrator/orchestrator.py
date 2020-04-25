@@ -8,10 +8,11 @@ from kazoo import KazooClient
 import logging
 import threading
 import time
+from sqlite3 import connect
 
 logging.basicConfig()
 
-ip = ""
+ip = "http://127.0.0.1"
 ride_share = Flask(__name__)
 port = 80
 host = "0.0.0.0"
@@ -33,20 +34,43 @@ def fn():
         timer.start()
 
 # reset http count code
+@ride_share.route("/api/v1/_count", methods=["DELETE"])
 def resetHttpCount():
-    print("reset")
+	conn = connect('counter.db')
+	cursor = conn.cursor()
+	cursor.execute("UPDATE counter SET count = 0;")
+	conn.commit()
+	cursor.close()
+	conn.close()
 
 # increment http count code
+@ride_share.route("/api/v1/_count", methods=["POST"])
 def incrementHttpCount():
-    print("increment count")
     global timer
     if not timer:
         print("trigger")
         fn()
+	conn = connect('counter.db')
+	cursor = conn.cursor()
+	cursor.execute("UPDATE counter SET count = count + 1;")
+	conn.commit()
+	cursor.close()
+	conn.close()
+
+@ride_share.route("/api/v1/_count")
+def getHttpCount():
+	conn = connect('counter.db')
+	cursor = conn.cursor()
+	cursor.execute("SELECT * FROM counter;")
+	count = cursor.fetchone()[0]
+	conn.commit()
+	cursor.close()
+	conn.close()
+	return count
 
 def timerfn():
     while True:
-        time.sleep(120)
+		time.sleep(120)
 		count = getHttpCount()
 		resetHttpCount()
 		res = count // 20
