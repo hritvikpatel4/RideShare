@@ -1,26 +1,17 @@
 version: '3'
 
 services:
-  zoo:
-    image: zookeeper
-    container_name: zoo
-    restart: on-failure
-    hostname: zoo
-    ports:
-      - 2181:2181
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
 
   rabbitmq:
     container_name: rabbitmq
     image: rabbitmq:3.8.3
+    restart: on-failure
 
   master:
     build: ./master
     image: master:latest
     container_name: master
-    command: sh -c "sleep 25 && python master.py"
+    command: sh -c "sleep 20 && python master.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
       - MASTER=1
@@ -36,7 +27,7 @@ services:
     build: ./slave
     image: slave:latest
     container_name: slave
-    command: sh -c "sleep 25 && python slave.py"
+    command: sh -c "sleep 20 && python slave.py"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
       - MASTER=0
@@ -52,7 +43,7 @@ services:
     build: ./orchestrator
     image: orchestrator:latest
     container_name: orchestrator
-    command: sh -c "sleep 25 && python orchestrator.py"
+    command: sh -c "sleep 20 && python orchestrator.py"
     ports:
       - "80:80"
     environment:

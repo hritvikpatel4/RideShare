@@ -1,12 +1,8 @@
 from sqlite3 import connect
 import pika
-from kazoo import KazooClient
 import logging
 
 logging.basicConfig()
-
-zk_con = KazooClient(hosts="zoo")
-zk_con.start()
 
 # A function to connect the program to a mysql server
 def connectDB(db):

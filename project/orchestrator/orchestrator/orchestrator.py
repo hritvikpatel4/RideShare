@@ -4,13 +4,14 @@ import ast
 import pika
 import uuid
 import docker
-from kazoo import KazooClient
 import logging
 import threading
 import time
 from sqlite3 import connect
 
 logging.basicConfig()
+
+print("Shut the FUCK UP AND RUN BITCH!")
 
 ip = ""
 ride_share = Flask(__name__)
@@ -21,9 +22,6 @@ connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
 print("connection:", connection)
 
 channel = connection.channel()
-
-zk_con = KazooClient(hosts="zoo")
-zk_con.start()
 
 timer = None
 
@@ -46,16 +44,16 @@ def resetHttpCount():
 # increment http count code
 @ride_share.route("/api/v1/_count", methods=["POST"])
 def incrementHttpCount():
-    global timer
-    if not timer:
-        print("trigger")
-        fn()
-	conn = connect('counter.db')
-	cursor = conn.cursor()
-	cursor.execute("UPDATE counter SET count = count + 1;")
-	conn.commit()
-	cursor.close()
-	conn.close()
+	global timer
+	if not timer:
+		print("trigger")
+		fn()
+		conn = connect('counter.db')
+		cursor = conn.cursor()
+		cursor.execute("UPDATE counter SET count = count + 1;")
+		conn.commit()
+		cursor.close()
+		conn.close()
 
 @ride_share.route("/api/v1/_count")
 def getHttpCount():
@@ -69,30 +67,12 @@ def getHttpCount():
 	return count
 
 def timerfn():
-    while True:
+	while True:
 		time.sleep(120)
 		count = getHttpCount()
 		resetHttpCount()
 		res = count // 20
-		cl = docker.from_env()
-		slaves = cl.containers.list()
-		for cont in slaves:
-			if cont.name == 'master':
-				slaves.remove(cont)
-				break
-		slaves = sorted(slaves, key=lambda x:int(x.id,16), reverse=True)
-		if res > len(slaves):
-			x = res - len(slaves)
-			while x:
-				image = slaves[-1].image
-				#image = cl.images.get('slaves:latest')
-				cl.containers.run(image, 'sleep 25 && python master_slave.py')
-				x -= 1
-		else:
-			x = slaves - res
-			killslaves = slaves[:x]
-			for cont in killslaves:
-				cont.kill()
+		print("Need {} containers now".format(res))
 
 class OrchestratorRpcClient():
 
