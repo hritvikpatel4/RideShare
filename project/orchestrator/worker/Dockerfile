@@ -1,3 +1,5 @@
+# Dockerfile for the worker container
+
 FROM python
 
 ENV PYTHONUNBUFFERED 1
@@ -9,4 +11,4 @@ COPY . /worker
 EXPOSE 8001
 
 RUN pip install -r requirements.txt
-CMD ["sh", "-c", "sleep 10 && python master_slave.py"]
+CMD ["sh", "-c", "sleep 10 && python worker.py"]

@@ -1,3 +1,5 @@
+# Docker-Compose file to orchestrate the initial containers ['zookeeper', 'rabbitmq', 'orchestrator']
+
 version: '3'
 
 # the build order is guaranteed to be

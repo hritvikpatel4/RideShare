@@ -1,3 +1,5 @@
+# --------------------------------------- IMPORT HERE ---------------------------------------
+
 from sqlite3 import connect
 import pika
 from kazoo.client import KazooClient
@@ -8,8 +10,11 @@ import os
 
 logging.basicConfig()
 
+# --------------------------------------- WORKER CODE INIT ---------------------------------------
 zk_con = KazooClient(hosts="zoo")
 zk_con.start()
+
+# --------------------------------------- MISC ---------------------------------------
 
 # A function to connect the program to a sqlite server
 def connectDB(db):
@@ -19,6 +24,8 @@ def connectDB(db):
 	except:
 		print("Error in connecting to the database")
 	return conn
+
+# --------------------------------------- MASTER OR SLAVE CONDITIONAL EXECUTION ---------------------------------------
 
 def exec_logic(MASTER):
     # If it is the master container
@@ -123,6 +130,8 @@ def exec_logic(MASTER):
         channel.basic_consume(queue='readQ', on_message_callback=service_request_slave, auto_ack=True)
 
         channel.start_consuming()
+
+# --------------------------------------- MAIN FUNCTION ---------------------------------------
 
 if __name__ == '__main__':
     MASTER = os.environ.get('MASTER')

@@ -1,3 +1,5 @@
+# --------------------------------------- IMPORT HERE ---------------------------------------
+
 from flask import Flask, jsonify, request, make_response
 import requests
 import ast
@@ -13,49 +15,61 @@ from sqlite3 import connect
 
 logging.basicConfig()
 
-print("\n\n-----ORCHESTRATOR CODE RUNNING-----\n\n")
+# --------------------------------------- ORCHESTRATOR CODE INIT ---------------------------------------
 
-ip = ""
+print("\n\n-----ORCHESTRATOR RUNNING-----\n\n")
+
+ip = "http://0.0.0.0:80"
 ride_share = Flask(__name__)
 port = 80
 host = "0.0.0.0"
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-print("connection:", connection)
-
-zk = KazooClient(hosts="zoo")
+zk = KazooClient(hosts = "zoo")
 zk.start()
 
-#zk.ensure_path('/root')
+zk.ensure_path('/root')
+zk.create('/root')
 
-#zk.create('/root')
+connection = pika.BlockingConnection(pika.ConnectionParameters(host = 'rabbitmq'))
+print("connection:", connection)
 
 channel = connection.channel()
 
 timer = None
 
+# --------------------------------------- AUTO SCALING AND SPAWNING OF CONTAINERS ---------------------------------------
+
+# Function to spawn new containers
+# TODO: ADD THE CODE TO COPY UPDATED DATA TO THE SLAVE CONTAINER'S DB
 def spawn(run_type):
 	client = docker.from_env()
+	
 	if run_type == 1:
 		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], name = "master", ports = {'8001':None}, network = "orchestrator_default")
+	
 	else:
 		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], ports = {'8001':None}, network = "orchestrator_default")
+	
 	time.sleep(10)
 	process = container.top()
 	print()
-	print("Container is of runtype (1 - master & 0 - slave):", run_type)
+	if run_type == 1:
+		print("Container spawned is a MASTER")
+	else:
+		print("Container spawned is a SLAVE")
 	print("New container spawned with pid:", int(process['Processes'][0][1]))
 	print()
+	
 	client.close()
 
+# Init timer
 def fn():
     global timer
     if not timer:
         timer = threading.Thread(target=timerfn)
         timer.start()
 
-# reset http count code
-@ride_share.route("/api/v1/_count", methods=["DELETE"])
+# Function to reset the requests count
 def resetHttpCount():
 	conn = connect('counter.db')
 	cursor = conn.cursor()
@@ -64,8 +78,7 @@ def resetHttpCount():
 	cursor.close()
 	conn.close()
 
-# increment http count code
-@ride_share.route("/api/v1/_count", methods=["POST"])
+# Function to increment the requests count
 def incrementHttpCount():
 	global timer
 	if not timer:
@@ -78,7 +91,7 @@ def incrementHttpCount():
 		cursor.close()
 		conn.close()
 
-@ride_share.route("/api/v1/_count")
+# Function to return the requests count
 def getHttpCount():
 	conn = connect('counter.db')
 	cursor = conn.cursor()
@@ -89,30 +102,53 @@ def getHttpCount():
 	conn.close()
 	return count
 
+# Timer function which runs as a thread. It also has the implementation of the auto-scaling
 def timerfn():
 	while True:
 		time.sleep(120)
 		count = getHttpCount()
 		resetHttpCount()
-		res = count // 20
-		print("Need {} containers now".format(res))
+		
+		res = (count // 20) + 1
+		print("Need {} slave containers now".format(res))
+		
+		client = docker.from_env()
+		num = len(client.containers.list()) - 4
+		print("We have {} slave containers now".format(num))
+		
+		if num > res:
+			x = num - res
+			while x > 0:
+				res = requests.post(ip + "/api/v1/crash/slave", data={})
+				x -= 1
+				time.sleep(0.25)
+		
+		else:
+			y = res - num
+			while y > 0:
+				spawn(0)
+				y -= 1
+		
+		client.close()
 
+# --------------------------------------- RABBITMQ ---------------------------------------
+
+# Class which contains methods for the RabbitMQ queues. The initialization and operating the queues
 class OrchestratorRpcClient():
-
 	def __init__(self):
 		self.connection = pika.BlockingConnection(
-			pika.ConnectionParameters(host='rabbitmq')
+			pika.ConnectionParameters(host = 'rabbitmq')
 		)
 
 		self.channel = self.connection.channel()
 
-		result = self.channel.queue_declare(queue='', exclusive=True)
+		result = self.channel.queue_declare(queue = '', exclusive = True)
 		self.callback_queue = result.method.queue
 
 		self.channel.basic_consume(
-			queue=self.callback_queue,
-			on_message_callback=self.on_response,
-			auto_ack=True
+			queue = self.callback_queue,
+			on_message_callback = self.on_response,
+			auto_ack = True
 		)
 
 	def on_response(self, ch, method, props, body):
@@ -129,17 +165,20 @@ class OrchestratorRpcClient():
 		self.response = None
 		self.corr_id = str(uuid.uuid4())
 		self.channel.basic_publish(
-			exchange='',
-			routing_key='readQ',
+			exchange = '',
+			routing_key = 'readQ',
 			properties=pika.BasicProperties(
-				reply_to=self.callback_queue,
-				correlation_id=self.corr_id,
+				reply_to = self.callback_queue,
+				correlation_id = self.corr_id,
 			),
-			body=query
+			body = query
 		)
 		while self.response is None:
 			self.connection.process_data_events()
+		
 		return self.response
+
+# --------------------------------------- MISC ---------------------------------------
 
 # Function to construct the SQL query
 def construct_query(data):
@@ -192,8 +231,10 @@ def construct_query(data):
 
 	return SQLQuery
 
-# API 8: API to modify (insert or delete) values from database
-@ride_share.route("/api/v1/db/write", methods=["POST"])
+# --------------------------------------- API ENDPOINTS ---------------------------------------
+
+# API 1: API to modify (insert or delete) values from database
+@ride_share.route("/api/v1/db/write", methods = ["POST"])
 def modifyDB():
 	# Construct the query based on the json file obtained
 	data = request.get_json()
@@ -204,14 +245,15 @@ def modifyDB():
 	# Send the query to master
 	channel.basic_publish(
 		exchange='',
-		routing_key='writeQ',
-		body=query
+		routing_key = 'writeQ',
+		body = query
 	)
 	return "", 200
 
-#API 9: API to read values from database
-@ride_share.route("/api/v1/db/read", methods=["POST"])
+# API 2: API to read values from database
+@ride_share.route("/api/v1/db/read", methods = ["POST"])
 def readDB():
+	incrementHttpCount()
 	data = request.get_json()
 	query = construct_query(data)
 	print("read API:", query)
@@ -220,12 +262,14 @@ def readDB():
 	orpc = OrchestratorRpcClient()
 	response = orpc.call(query)
 	print("Response_len:", len(response))
+	
 	if not response:
 		return "", 400
+	
 	return jsonify(response), 200
 
-#API to clear database
-@ride_share.route("/api/v1/db/clear",methods=["POST"])
+# API 3: API to clear database
+@ride_share.route("/api/v1/db/clear", methods = ["POST"])
 def clear():
 	data = {
 		"operation": "DELETE",
@@ -233,12 +277,13 @@ def clear():
 		"where": ["1=1"]
 		}
 	try:
-		requests.post(ip+"/api/v1/db/write", json=data)
-		return make_response("",200)
+		requests.post(ip + "/api/v1/db/write", json = data)
+		return make_response("", 200)
+	
 	except:
-		return make_response("bad request",400)
+		return make_response("error", 400)
 
-# Kill master
+# API 4: API to kill the master
 @ride_share.route("/api/v1/crash/master",methods=["POST"])
 def kill_master():
 	client = docker.from_env()
@@ -256,7 +301,7 @@ def kill_master():
 	client.close()
 	return res
 
-# Kill slave
+# API 5: API to kill a slave with the highest pid
 @ride_share.route("/api/v1/crash/slave",methods=["POST"])
 def kill_slave():
 	client = docker.from_env()
@@ -270,7 +315,6 @@ def kill_slave():
 			process = container.top()
 			pids.append(int(process['Processes'][0][1]))
 	
-	# Sort in ascending order and then compare the pid of each container to the last element in the sorted list
 	pids.sort()
 	
 	if len(pids) == 0:
@@ -290,6 +334,7 @@ def kill_slave():
 	client.close()
 	return res
 
+# API 6: API to list all the worker containers
 @ride_share.route("/api/v1/worker/list",methods=["POST"])
 def list_all():
 	client = docker.from_env()
@@ -308,6 +353,8 @@ def list_all():
 
 	res = make_response(jsonify(pids), 200)
 	return res
+
+# --------------------------------------- MAIN FUNCTION ---------------------------------------
 
 if __name__ == '__main__':
 	spawn(1) # initial master spawn
