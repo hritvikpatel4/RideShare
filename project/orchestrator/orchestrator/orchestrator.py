@@ -8,6 +8,7 @@ from kazoo.client import KazooClient
 import logging
 import threading
 import time
+import os
 from sqlite3 import connect
 
 logging.basicConfig()
@@ -32,6 +33,20 @@ zk.start()
 channel = connection.channel()
 
 timer = None
+
+def spawn(run_type):
+	client = docker.from_env()
+	if run_type == 1:
+		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], name = "master", ports = {'8001':None}, network = "orchestrator_default")
+	else:
+		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], ports = {'8001':None}, network = "orchestrator_default")
+	time.sleep(10)
+	process = container.top()
+	print()
+	print("Container is of runtype (1 - master & 0 - slave):", run_type)
+	print("New container spawned with pid:", int(process['Processes'][0][1]))
+	print()
+	client.close()
 
 def fn():
     global timer
@@ -229,18 +244,21 @@ def kill_master():
 	client = docker.from_env()
 	containers = client.containers.list()
 	
+	allowed = ['master']
+
 	for container in containers:
-		if(container.name == 'master'):
+		if container.name in allowed:
 			process = container.top()
 			pid = process['Processes'][0][1]
 			res = make_response(jsonify(pid),200)
 			container.kill()
 	
+	client.close()
 	return res
 
 # Kill slave
 @ride_share.route("/api/v1/crash/slave",methods=["POST"])
-def kill_slave(master_pid):
+def kill_slave():
 	client = docker.from_env()
 	containers = client.containers.list()
 	
@@ -268,7 +286,8 @@ def kill_slave(master_pid):
 					res = make_response(jsonify(pid),200)
 					container.kill()
 					break
-
+	
+	client.close()
 	return res
 
 @ride_share.route("/api/v1/worker/list",methods=["POST"])
@@ -285,9 +304,14 @@ def list_all():
 			pids.append(int(process['Processes'][0][1]))
 	
 	pids.sort()
-	
+	client.close()
+
 	res = make_response(jsonify(pids), 200)
 	return res
 
 if __name__ == '__main__':
+	spawn(1) # initial master spawn
+	time.sleep(5)
+	spawn(0) # initial slave spawn
+	
 	ride_share.run(debug = True, port = port, host = host)
