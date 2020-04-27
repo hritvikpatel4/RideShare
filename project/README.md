@@ -6,12 +6,12 @@ autoscaling - count only db read towards the count of the api requests <br/>
 kill master <br/>
 kill slave <br/>
 list workers <br/>
+clear db api in the orchestrator <br/>
 queues [readQ, writeQ, syncQ, responseQ] <br/>
 
 ### TODO
 zookeeper and leader election { singly linked list or the one [here](http://zookeeper.apache.org/doc/r3.5.7/recipes.html#sc_leaderElection) } <br/>
-sync data to new spawned worker (can be slave or master) using a file/log <br/>
-clear db api in the orchestrator <br/>
+sync data to new spawned worker (can be slave or master) using a file/log or a new persistentSyncQ <br/>
 
 ### Pending Test
 queues [readQ, writeQ, syncQ, responseQ] <br/>
@@ -22,6 +22,7 @@ Remove the master and slave from the docker-compose file and create a worker ima
 kill master <br/>
 kill slave <br/>
 list workers <br/>
+clear db api in the orchestrator <br/>
 
 ### Scripts
 Before running any script,<br/>
