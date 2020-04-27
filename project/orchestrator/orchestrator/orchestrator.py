@@ -271,13 +271,19 @@ def readDB():
 # API 3: API to clear database
 @ride_share.route("/api/v1/db/clear", methods = ["POST"])
 def clear():
-	data = {
+	data_r = {
 		"operation": "DELETE",
 		"tablename": "ridedetails",
 		"where": ["1=1"]
 		}
+	data_u = {
+		"operation": "DELETE",
+		"tablename": "userdetails",
+		"where": ["1=1"]
+	}
 	try:
-		requests.post(ip + "/api/v1/db/write", json = data)
+		requests.post(ip + "/api/v1/db/write", json = data_r)
+		requests.post(ip + "/api/v1/db/write", json = data_u)
 		return make_response("", 200)
 	
 	except:
