@@ -13,11 +13,12 @@ import time
 import os
 from sqlite3 import connect
 
-logging.basicConfig()
-
 # --------------------------------------- ORCHESTRATOR CODE INIT ---------------------------------------
 
+logging.basicConfig(filename = 'orchestrator.log', format = '%(asctime)s => %(levelname)s : %(message)s', level = logging.DEBUG)
+
 print("\n\n-----ORCHESTRATOR RUNNING-----\n\n")
+logging.info('Orchestrator running')
 
 ip = "http://0.0.0.0:80"
 ride_share = Flask(__name__)
@@ -26,22 +27,24 @@ host = "0.0.0.0"
 
 zk = KazooClient(hosts = "zoo")
 zk.start()
+logging.info('Zookeeper connection established')
 
-zk.ensure_path('/root')
-zk.create('/root')
-
-connection = pika.BlockingConnection(pika.ConnectionParameters(host = 'rabbitmq'))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host = 'rabbitmq', heartbeat=0))
 print("connection:", connection)
-
 channel = connection.channel()
+logging.info('RabbitMQ connection established')
 
+# Timer variable for the auto scaling logic
 timer = None
 
-# --------------------------------------- AUTO SCALING AND SPAWNING OF CONTAINERS ---------------------------------------
+# Flag variable to check whether it is the first read db request. This is done so that we can start the timer on the first request
+is_first_read_request = True
+
+# --------------------------------------- AUTO-SCALING AND SPAWNING OF CONTAINERS ---------------------------------------
 
 # Function to spawn new containers
 # TODO: ADD THE CODE TO COPY UPDATED DATA TO THE SLAVE CONTAINER'S DB
-def spawn(run_type):
+def spawnContainer(run_type):
 	client = docker.from_env()
 	
 	if run_type == 1:
@@ -54,20 +57,34 @@ def spawn(run_type):
 	process = container.top()
 	print()
 	if run_type == 1:
-		print("Container spawned is a MASTER")
+		logging.debug('Master container spawned with pid: {}'.format(int(process['Processes'][0][1])))
+		print("Container spawned is a MASTER with pid: {}".format(int(process['Processes'][0][1])))
+		val = "master"
+		data = val.encode('utf-8')
+		zk.create('/root/'+str(process['Processes'][0][1]), ephemeral = True, value = data)
+		logging.info('Master added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
 	else:
-		print("Container spawned is a SLAVE")
-	print("New container spawned with pid:", int(process['Processes'][0][1]))
+		logging.debug('Slave container spawned with pid: {}'.format(int(process['Processes'][0][1])))
+		print("Container spawned is a SLAVE with pid: {}".format(int(process['Processes'][0][1])))
+		val = "slave"
+		data = val.encode('utf-8')
+		zk.create('/root/'+str(process['Processes'][0][1]), ephemeral = True, value = data)
+		logging.info('Slave added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
 	print()
-	
+	data, stat = zk.get('/root')
+	children = zk.get_children('/root')
+	print("value at /root: {}".format(data.decode('utf-8')))
+	print("children of orchestrator: {}".format(children))
+	print()
 	client.close()
 
 # Init timer
 def fn():
-    global timer
-    if not timer:
-        timer = threading.Thread(target=timerfn)
-        timer.start()
+	global timer
+	if not timer:
+		timer = threading.Thread(target=timerfn)
+		timer.start()
+		logging.info('Timer initialized for auto scaling')
 
 # Function to reset the requests count
 def resetHttpCount():
@@ -116,7 +133,10 @@ def timerfn():
 		num = len(client.containers.list()) - 4
 		print("We have {} slave containers now".format(num))
 		
+		logging.info('AUTO-SCALING EXECUTION. Thread ran for 2 minutes. Got the count of requests as {}. Reset the requests count. Number of slave containers needed {}. Currently running {}.'.format(count, res, num))
+
 		if num > res:
+			logging.debug('Scaling down')
 			x = num - res
 			while x > 0:
 				res = requests.post(ip + "/api/v1/crash/slave", data={})
@@ -124,12 +144,23 @@ def timerfn():
 				time.sleep(0.25)
 		
 		else:
+			logging.debug('Scaling up')
 			y = res - num
 			while y > 0:
-				spawn(0)
+				spawnContainer(0)
 				y -= 1
 		
 		client.close()
+
+# --------------------------------------- ZOOKEEPER ---------------------------------------
+
+zk.ensure_path('/root')
+if zk.exists('/root'):
+	zk.delete('/root', recursive = True)
+val = "orchestrator"
+data = val.encode('utf-8')
+zk.create('/root', value = data)
+logging.info('Orchestrator added to Znode with value: {}'.format(data.decode('utf-8')))
 
 # --------------------------------------- RABBITMQ ---------------------------------------
 
@@ -137,7 +168,7 @@ def timerfn():
 class OrchestratorRpcClient():
 	def __init__(self):
 		self.connection = pika.BlockingConnection(
-			pika.ConnectionParameters(host = 'rabbitmq')
+			pika.ConnectionParameters(host = 'rabbitmq', heartbeat=0)
 		)
 
 		self.channel = self.connection.channel()
@@ -236,31 +267,43 @@ def construct_query(data):
 # API 1: API to modify (insert or delete) values from database
 @ride_share.route("/api/v1/db/write", methods = ["POST"])
 def modifyDB():
-	# Construct the query based on the json file obtained
+	logging.debug('Modify DB API invoked')
+
 	data = request.get_json()
 	query = construct_query(data)
 	print("write API:", query)
 
-	# Insert the producer code here
 	# Send the query to master
 	channel.basic_publish(
 		exchange='',
 		routing_key = 'writeQ',
 		body = query
 	)
+
+	logging.debug('Data sent on the writeQ to master. SQL Query sent: {}'.format(query))
 	return "", 200
 
 # API 2: API to read values from database
 @ride_share.route("/api/v1/db/read", methods = ["POST"])
 def readDB():
+	logging.debug('Read DB API invoked')
+	
+	global is_first_read_request
+	if is_first_read_request:
+		fn()
+		is_first_read_request = False
 	incrementHttpCount()
+	logging.info('Request counter incremented')
+	
 	data = request.get_json()
 	query = construct_query(data)
+	logging.debug('SQL Query is: {}'.format(query))
 	print("read API:", query)
 
 	# Send the query to slave
 	orpc = OrchestratorRpcClient()
 	response = orpc.call(query)
+	logging.debug('Query sent to slave. Got response: {}'.format(response))
 	print("Response_len:", len(response))
 	
 	if not response:
@@ -271,6 +314,8 @@ def readDB():
 # API 3: API to clear database
 @ride_share.route("/api/v1/db/clear", methods = ["POST"])
 def clear():
+	logging.debug('Clear DB API invoked')
+	
 	data_r = {
 		"operation": "DELETE",
 		"tablename": "ridedetails",
@@ -281,17 +326,21 @@ def clear():
 		"tablename": "userdetails",
 		"where": ["1=1"]
 	}
+	
 	try:
 		requests.post(ip + "/api/v1/db/write", json = data_r)
 		requests.post(ip + "/api/v1/db/write", json = data_u)
+		logging.debug('DB cleared')
 		return make_response("", 200)
 	
 	except:
+		logging.error('DB clear not performed due to error')
 		return make_response("error", 400)
 
 # API 4: API to kill the master
 @ride_share.route("/api/v1/crash/master",methods=["POST"])
 def kill_master():
+	logging.debug('Kill Master API invoked')
 	client = docker.from_env()
 	containers = client.containers.list()
 	
@@ -303,6 +352,7 @@ def kill_master():
 			pid = process['Processes'][0][1]
 			res = make_response(jsonify(pid),200)
 			container.kill()
+			logging.info('Master container killed with pid: {}'.format(pid))
 	
 	client.close()
 	return res
@@ -310,6 +360,7 @@ def kill_master():
 # API 5: API to kill a slave with the highest pid
 @ride_share.route("/api/v1/crash/slave",methods=["POST"])
 def kill_slave():
+	logging.debug('Kill Slave API invoked')
 	client = docker.from_env()
 	containers = client.containers.list()
 	
@@ -335,6 +386,7 @@ def kill_slave():
 				if int(pid) == pids[-1]:
 					res = make_response(jsonify(pid),200)
 					container.kill()
+					logging.info('Slave container killed with pid: {}'.format(pid))
 					break
 	
 	client.close()
@@ -343,6 +395,7 @@ def kill_slave():
 # API 6: API to list all the worker containers
 @ride_share.route("/api/v1/worker/list",methods=["POST"])
 def list_all():
+	logging.debug('List Workers API invoked')
 	client = docker.from_env()
 	containers = client.containers.list()
 	
@@ -356,6 +409,7 @@ def list_all():
 	
 	pids.sort()
 	client.close()
+	logging.info('List Workers API successfully returned')
 
 	res = make_response(jsonify(pids), 200)
 	return res
@@ -363,8 +417,11 @@ def list_all():
 # --------------------------------------- MAIN FUNCTION ---------------------------------------
 
 if __name__ == '__main__':
-	spawn(1) # initial master spawn
-	time.sleep(5)
-	spawn(0) # initial slave spawn
+	spawnContainer(1) # initial master spawn
+	logging.debug('Initial master spawned')
+	# time.sleep(1)
+	spawnContainer(0) # initial slave spawn
+	logging.debug('Initial slave spawned')
 	
-	ride_share.run(debug = True, port = port, host = host)
+	logging.info('Flask server running')
+	ride_share.run(debug = True, port = port, host = host, use_reloader = False)

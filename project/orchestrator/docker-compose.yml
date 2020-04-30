@@ -38,6 +38,7 @@ services:
       - TEAM_NAME=CC_0125_0172_0242_1557
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
       - ./orchestrator:/orchestrator
     links:
       - rabbitmq

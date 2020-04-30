@@ -8,11 +8,13 @@ import csv, string, collections, datetime
 import docker
 import os
 
-logging.basicConfig()
-
 # --------------------------------------- WORKER CODE INIT ---------------------------------------
-zk_con = KazooClient(hosts="zoo")
-zk_con.start()
+
+logging.basicConfig(filename = 'worker.log', format = '%(asctime)s => %(levelname)s : %(message)s', level = logging.DEBUG)
+
+zk = KazooClient(hosts="zoo")
+zk.start()
+logging.info('Zookeeper connection established')
 
 # --------------------------------------- MISC ---------------------------------------
 
@@ -25,19 +27,31 @@ def connectDB(db):
 		print("Error in connecting to the database")
 	return conn
 
+# --------------------------------------- ZOOKEEPER ---------------------------------------
+
+# val = "test"
+# data = val.encode('utf-8')
+# zk.create('/root/node', ephemeral = True, value = data)
+
+# data, stat = zk.get('/root')
+# children = zk.get_children('/root')
+# print("value at /root: {}".format(data.decode('utf-8')))
+# print("children of orchestrator: {}".format(children))
+
 # --------------------------------------- MASTER OR SLAVE CONDITIONAL EXECUTION ---------------------------------------
 
 def exec_logic(MASTER):
     # If it is the master container
     if MASTER == '1':
         print("\n\n-----MASTER CODE RUNNING-----\n\n")
+        logging.debug('Master running')
         def service_request_master(ch, method, properties, body):
             print(" [x] Received %s" % body)
             conn = connectDB('ride_share.db')
             cursor = conn.cursor()
             cursor.execute("PRAGMA foreign_keys = 1")
             body = body.decode("utf-8")
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
 
             #sync after read is acknowledge
             channel = connection.channel()
@@ -55,11 +69,10 @@ def exec_logic(MASTER):
 
             return "", 200
         
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
         print("Connection: {}".format(connection))
-
         channel = connection.channel()
+        logging.info('RabbitMQ connection established')
 
         channel.queue_declare(queue='writeQ', exclusive=True)
         #declare sync queue
@@ -76,6 +89,7 @@ def exec_logic(MASTER):
     # If it is the slave container
     if MASTER == '0':
         print("\n\n-----SLAVE CODE RUNNING-----\n\n")
+        logging.debug('Slave running')
         def sync_callback(ch, method, properties, body):
             conn = connectDB('ride_share.db')
             cursor = conn.cursor()                
@@ -100,14 +114,13 @@ def exec_logic(MASTER):
                     ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body="")
                 
                 else:
-                    print("returning 200 error code")
+                    print("returning 200 success code")
                     ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body=str(rows))
         
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
         print("Connection (slave): {}".format(connection))
-
         channel = connection.channel()
+        logging.info('RabbitMQ connection established')
 
         #sync first
         #declare syn queue

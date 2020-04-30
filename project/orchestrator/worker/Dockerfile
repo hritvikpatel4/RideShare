@@ -6,9 +6,9 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
 WORKDIR /worker
-COPY . /worker
+COPY . .
 
 EXPOSE 8001
 
 RUN pip install -r requirements.txt
-CMD ["sh", "-c", "sleep 10 && python worker.py"]
+CMD ["sh", "-c", "python worker.py"]
