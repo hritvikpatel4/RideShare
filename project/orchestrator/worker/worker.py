@@ -7,6 +7,7 @@ import logging
 import csv, string, collections, datetime
 import docker
 import os
+import time
 
 # --------------------------------------- WORKER CODE INIT ---------------------------------------
 
@@ -27,24 +28,31 @@ def connectDB(db):
 		print("Error in connecting to the database")
 	return conn
 
-# --------------------------------------- ZOOKEEPER ---------------------------------------
-
-# val = "test"
-# data = val.encode('utf-8')
-# zk.create('/root/node', ephemeral = True, value = data)
-
-# data, stat = zk.get('/root')
-# children = zk.get_children('/root')
-# print("value at /root: {}".format(data.decode('utf-8')))
-# print("children of orchestrator: {}".format(children))
-
 # --------------------------------------- MASTER OR SLAVE CONDITIONAL EXECUTION ---------------------------------------
 
 def exec_logic(MASTER):
-    # If it is the master container
+    # MASTER LOGIC
     if MASTER == '1':
         print("\n\n-----MASTER CODE RUNNING-----\n\n")
         logging.debug('Master running')
+
+        # --------------------------------------- ADD TO ZOOKEEPER ---------------------------------------
+
+        file = open('pid.txt', 'r')
+        pid = file.readlines()
+        pid = int(pid[0])
+        file.close()
+        val = "master"
+        data = val.encode('utf-8')
+        zk.create('/root/'+str(pid), ephemeral = True, value = data)
+        logging.info('Master added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
+        data, stat = zk.get('/root')
+        children = zk.get_children('/root')
+        print("value at /root: {}".format(data.decode('utf-8')))
+        print("children of orchestrator: {}".format(children))
+
+        # --------------------------------------- ZOOKEEPER LOGIC ENDS ---------------------------------------
+
         def service_request_master(ch, method, properties, body):
             print(" [x] Received %s" % body)
             conn = connectDB('ride_share.db')
@@ -86,10 +94,28 @@ def exec_logic(MASTER):
 
         channel.start_consuming()
 
-    # If it is the slave container
+    # SLAVE LOGIC
     if MASTER == '0':
         print("\n\n-----SLAVE CODE RUNNING-----\n\n")
         logging.debug('Slave running')
+
+        # --------------------------------------- ADD TO ZOOKEEPER ---------------------------------------
+
+        file = open('pid.txt', 'r')
+        pid = file.readlines()
+        pid = int(pid[0])
+        file.close()
+        val = "slave"
+        data = val.encode('utf-8')
+        zk.create('/root/'+str(pid), ephemeral = True, value = data)
+        logging.info('Slave added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
+        data, stat = zk.get('/root')
+        children = zk.get_children('/root')
+        print("value at /root: {}".format(data.decode('utf-8')))
+        print("children of orchestrator: {}".format(children))
+
+        # --------------------------------------- ZOOKEEPER LOGIC ENDS ---------------------------------------
+
         def sync_callback(ch, method, properties, body):
             conn = connectDB('ride_share.db')
             cursor = conn.cursor()                
@@ -148,4 +174,5 @@ def exec_logic(MASTER):
 
 if __name__ == '__main__':
     MASTER = os.environ.get('MASTER')
+    time.sleep(5)
     exec_logic(MASTER)

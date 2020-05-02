@@ -48,43 +48,33 @@ def spawnContainer(run_type):
 	client = docker.from_env()
 	
 	if run_type == 1:
-		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], name = "master", ports = {'8001':None}, network = "orchestrator_default")
+		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], name = "master", network = "orchestrator_default")
 	
 	else:
-		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], ports = {'8001':None}, network = "orchestrator_default")
+		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], network = "orchestrator_default")
 	
-	time.sleep(10)
+	time.sleep(5)
 	process = container.top()
+
+	pid = process['Processes'][0][1]
+	file = open('pid.txt', 'w')
+	file.write(str(pid))
+	file.close()
+	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt".format(container.id)
+	os.system(cmd1)
+	cmd2 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
+	os.system(cmd2)
+
 	print()
 	if run_type == 1:
 		logging.debug('Master container spawned with pid: {}'.format(int(process['Processes'][0][1])))
 		print("Container spawned is a MASTER with pid: {}".format(int(process['Processes'][0][1])))
-		val = "master"
-		data = val.encode('utf-8')
-		zk.create('/root/'+str(process['Processes'][0][1]), ephemeral = True, value = data)
-		logging.info('Master added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
+	
 	else:
 		logging.debug('Slave container spawned with pid: {}'.format(int(process['Processes'][0][1])))
 		print("Container spawned is a SLAVE with pid: {}".format(int(process['Processes'][0][1])))
-		val = "slave"
-		data = val.encode('utf-8')
-		zk.create('/root/'+str(process['Processes'][0][1]), ephemeral = True, value = data)
-		logging.info('Slave added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
-	print()
-	data, stat = zk.get('/root')
-	children = zk.get_children('/root')
-	print("value at /root: {}".format(data.decode('utf-8')))
-	print("children of orchestrator: {}".format(children))
 	print()
 	client.close()
-
-# Init timer
-def fn():
-	global timer
-	if not timer:
-		timer = threading.Thread(target=timerfn)
-		timer.start()
-		logging.info('Timer initialized for auto scaling')
 
 # Function to reset the requests count
 def resetHttpCount():
@@ -143,14 +133,25 @@ def timerfn():
 				x -= 1
 				time.sleep(0.1)
 		
-		else:
+		elif num < res:
 			logging.debug('Scaling up')
 			y = res - num
 			while y > 0:
 				spawnContainer(0)
 				y -= 1
 		
+		else:
+			pass
+		
 		client.close()
+
+# Init timer
+def fn():
+	global timer
+	if not timer:
+		timer = threading.Thread(target=timerfn)
+		timer.start()
+		logging.info('Timer initialized for auto scaling')
 
 # --------------------------------------- ZOOKEEPER ---------------------------------------
 

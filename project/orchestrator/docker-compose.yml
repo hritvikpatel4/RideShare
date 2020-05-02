@@ -26,7 +26,6 @@ services:
     restart: on-failure
   
   # if running locally then change the ports of the orchestrator to "5050:8000" to avoid port conflicts with a web server already running on port 80
-
   orchestrator:
     build: ./orchestrator
     image: orchestrator:latest
@@ -39,7 +38,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-      - ./orchestrator:/orchestrator
     links:
       - rabbitmq
       - zoo
