@@ -5,7 +5,7 @@ from sqlite3 import connect
 import requests
 
 ride_share = Flask(__name__)
-ip = "http://34.226.142.9:80"
+ip = "http://34.199.137.13:80"
 host = "0.0.0.0"
 port = 80
 
@@ -101,4 +101,4 @@ def fallback_api_v1_username():
 	return make_response("", 405)
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=port, host=host)
+	ride_share.run(debug=True, port=port, host=host, use_reloader=False)

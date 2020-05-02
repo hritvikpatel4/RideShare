@@ -7,12 +7,12 @@ import sys
 print(sys.version)
 
 ride_share = Flask(__name__)
-ip = "http://0.0.0.0:5050"		   	# insert the orchestrator IP here
+ip = "http://34.199.137.13:80"		   	# insert the orchestrator IP here
 cross_ip = "http://127.0.0.1:5025" 	# load balancer
 host = "0.0.0.0"
 port = 80
 
-origin = {"Origin": "52.7.189.65"}
+origin = {"Origin": "52.7.189.65"} # rides ip here
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
