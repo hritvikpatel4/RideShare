@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  rides:
+    build: ./rides
+    image: rides:latest
+    container_name: rides
+    restart: always
+    ports: 
+      - "80:80"
+    environment:
+      - TEAM_NAME=CC_0125_0172_0242_1557
+    volumes:
+      - ./rides:/rides
