@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /orchestrator
 COPY . .
 
-EXPOSE 8000
+EXPOSE 80
 
 RUN pip install -r requirements.txt
 CMD ["sh", "-c", "sleep 15 && python orchestrator.py"]

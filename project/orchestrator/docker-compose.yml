@@ -32,8 +32,8 @@ services:
     image: orchestrator:latest
     container_name: orchestrator
     ports:
-      - "80:8000"
-      # - "5050:8000"
+      - "80:80"
+      # - "5050:80"
     environment:
       - TEAM_NAME=CC_0125_0172_0242_1557
     volumes:
@@ -47,41 +47,3 @@ services:
       - rabbitmq 
       - zoo
     restart: on-failure
-  
-# Moved the master and slave spawning code to the orchestrator
-
-  # master:
-  #   build: ./worker
-  #   image: worker:latest
-  #   container_name: master
-  #   command: sh -c "sleep 25 && python master_slave.py"
-  #   environment:
-  #     - TEAM_NAME=CC_0125_0172_0242_1557
-  #     - MASTER=1
-  #   volumes:
-  #     - ./worker:/worker
-  #   links:
-  #     - rabbitmq
-  #     - zoo
-  #   depends_on:
-  #     - rabbitmq
-  #     - zoo
-  #   restart: on-failure
-
-  # slave:
-  #   build: ./worker
-  #   image: worker:latest
-  #   container_name: slave
-  #   command: sh -c "sleep 30 && python master_slave.py"
-  #   environment:
-  #     - TEAM_NAME=CC_0125_0172_0242_1557
-  #     - MASTER=0
-  #   volumes:
-  #     - ./worker:/worker
-  #   links:
-  #     - rabbitmq
-  #     - zoo
-  #   depends_on:
-  #     - rabbitmq
-  #     - zoo
-  #   restart: on-failure

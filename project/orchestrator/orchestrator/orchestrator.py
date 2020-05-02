@@ -141,7 +141,7 @@ def timerfn():
 			while x > 0:
 				res = requests.post(ip + "/api/v1/crash/slave", data={})
 				x -= 1
-				time.sleep(0.25)
+				time.sleep(0.1)
 		
 		else:
 			logging.debug('Scaling up')
