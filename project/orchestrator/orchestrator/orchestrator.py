@@ -60,7 +60,7 @@ def spawnContainer(run_type):
 	file = open('pid.txt', 'w')
 	file.write(str(pid))
 	file.close()
-	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt".format(container.id)
+	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt"
 	os.system(cmd1)
 	cmd2 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
 	os.system(cmd2)

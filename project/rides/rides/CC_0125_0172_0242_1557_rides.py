@@ -7,8 +7,8 @@ import sys
 print(sys.version)
 
 ride_share = Flask(__name__)
-ip = "http://34.199.137.13:80"		   	# insert the orchestrator IP here
-cross_ip = "http://127.0.0.1:5025" 	# load balancer
+ip = "http://34.199.137.13:80"		# insert the orchestrator IP here
+cross_ip = "http://127.0.0.1:5025"	# load balancer
 host = "0.0.0.0"
 port = 80
 
