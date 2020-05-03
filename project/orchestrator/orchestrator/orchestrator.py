@@ -44,14 +44,10 @@ is_first_read_request = True
 
 # Function to spawn new containers
 # TODO: ADD THE CODE TO COPY UPDATED DATA TO THE SLAVE CONTAINER'S DB
-def spawnContainer(run_type):
+def spawnContainer():
 	client = docker.from_env()
 	
-	if run_type == 1:
-		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], name = "master", network = "orchestrator_default")
-	
-	else:
-		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], network = "orchestrator_default")
+	container = client.containers.run('worker', detach = True, network = "orchestrator_default")
 	
 	time.sleep(10)
 	process = container.top()
@@ -66,13 +62,8 @@ def spawnContainer(run_type):
 	os.system(cmd2)
 
 	print()
-	if run_type == 1:
-		logging.debug('Master container spawned with pid: {}'.format(int(process['Processes'][0][1])))
-		print("Container spawned is a MASTER with pid: {}".format(int(process['Processes'][0][1])))
-	
-	else:
-		logging.debug('Slave container spawned with pid: {}'.format(int(process['Processes'][0][1])))
-		print("Container spawned is a SLAVE with pid: {}".format(int(process['Processes'][0][1])))
+	logging.debug('Container spawned with pid: {}'.format(int(process['Processes'][0][1])))
+	print("Container spawned with pid: {}".format(int(process['Processes'][0][1])))
 	print()
 	client.close()
 
@@ -134,7 +125,7 @@ def timerfn():
 			logging.debug('Scaling up')
 			y = res - num
 			while y > 0:
-				spawnContainer(0)
+				spawnContainer()
 				y -= 1
 		
 		else:
@@ -343,15 +334,18 @@ def kill_master():
 	client = docker.from_env()
 	containers = client.containers.list()
 	
-	allowed = ['master']
+	children = zk.get_children('/root')
+	children.sort()
+	master_pid = min(children)
 
 	for container in containers:
-		if container.name in allowed:
-			process = container.top()
-			pid = process['Processes'][0][1]
-			res = make_response(jsonify(pid),200)
+		process = container.top()
+		pid = process['Processes'][0][1]
+		if pid == master_pid:
+			res = make_response(jsonify(pid), 200)
 			container.kill()
 			logging.info('Master container killed with pid: {}'.format(pid))
+			break
 	
 	client.close()
 	return res
@@ -363,30 +357,18 @@ def kill_slave():
 	client = docker.from_env()
 	containers = client.containers.list()
 	
-	pids = []
-	rejected = ['zoo', 'rabbitmq', 'orchestrator', 'master']
+	children = zk.get_children('/root')
+	children.sort()
+	slave_pid = max(children)
 	
 	for container in containers:
-		if container.name not in rejected:
-			process = container.top()
-			pids.append(int(process['Processes'][0][1]))
-	
-	pids.sort()
-	
-	if len(pids) == 0:
-		res = make_response("no slave left to kill", 400)
-	
-	else:
-		for container in containers:
-			if container.name not in rejected:
-				process = container.top()
-				pid = process['Processes'][0][1]
-				
-				if int(pid) == pids[-1]:
-					res = make_response(jsonify(pid),200)
-					container.kill()
-					logging.info('Slave container killed with pid: {}'.format(pid))
-					break
+		process = container.top()
+		pid = process['Processes'][0][1]
+		if pid == slave_pid:
+			res = make_response(jsonify(pid), 200)
+			container.kill()
+			logging.info('Slave container killed with pid: {}'.format(pid))
+			break
 	
 	client.close()
 	return res
@@ -416,10 +398,10 @@ def list_all():
 # --------------------------------------- MAIN FUNCTION ---------------------------------------
 
 if __name__ == '__main__':
-	spawnContainer(1) # initial master spawn
+	spawnContainer() # initial master spawn
 	logging.debug('Initial master spawned')
 	# time.sleep(1)
-	spawnContainer(0) # initial slave spawn
+	spawnContainer() # initial slave spawn
 	logging.debug('Initial slave spawned')
 	
 	logging.info('Flask server running')

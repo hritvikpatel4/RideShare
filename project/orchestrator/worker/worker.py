@@ -28,151 +28,164 @@ def connectDB(db):
 		print("Error in connecting to the database")
 	return conn
 
-# --------------------------------------- MASTER OR SLAVE CONDITIONAL EXECUTION ---------------------------------------
+# --------------------------------------- MASTER ---------------------------------------
+def master(pid):
+    print("\n\n-----MASTER CODE RUNNING-----\n\n")
+    logging.debug('Master running')
 
-def exec_logic(MASTER):
-    # MASTER LOGIC
-    if MASTER == '1':
-        print("\n\n-----MASTER CODE RUNNING-----\n\n")
-        logging.debug('Master running')
+    val = "master"
+    data = val.encode('utf-8')
+    zk.set('/root/'+str(pid), value = data)
 
-        # --------------------------------------- ADD TO ZOOKEEPER ---------------------------------------
-
-        file = open('pid.txt', 'r')
-        pid = file.readlines()
-        pid = int(pid[0])
-        file.close()
-        val = "master"
-        data = val.encode('utf-8')
-        zk.create('/root/'+str(pid), ephemeral = True, value = data)
-        logging.info('Master added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
-        data, stat = zk.get('/root')
-        children = zk.get_children('/root')
-        print("value at /root: {}".format(data.decode('utf-8')))
-        print("children of orchestrator: {}".format(children))
-
-        # --------------------------------------- ZOOKEEPER LOGIC ENDS ---------------------------------------
-
-        def service_request_master(ch, method, properties, body):
-            print(" [x] Received %s" % body)
-            conn = connectDB('ride_share.db')
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA foreign_keys = 1")
-            body = body.decode("utf-8")
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
-
-            #sync after read is acknowledge
-            channel = connection.channel()
-
-            channel.basic_publish(exchange='syncQ', routing_key='', body=body)
-
-            print(" [x] Sent %r" % body)
-
-            connection.close()
-
-            cursor.execute(body)
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            return "", 200
-        
+    def service_request_master(ch, method, properties, body):
+        print(" [x] Received %s" % body)
+        conn = connectDB('ride_share.db')
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA foreign_keys = 1")
+        body = body.decode("utf-8")
         connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
-        print("Connection: {}".format(connection))
+
+        #sync after read is acknowledge
         channel = connection.channel()
-        logging.info('RabbitMQ connection established')
 
-        channel.queue_declare(queue='writeQ', exclusive=True)
-        #declare sync queue
-        channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
+        channel.basic_publish(exchange='syncQ', routing_key='', body=body)
 
-        print(' [*] Waiting for messages. To exit press CTRL+C')
+        print(" [x] Sent %r" % body)
 
-        channel.basic_qos(prefetch_count=1)
+        connection.close()
 
-        channel.basic_consume(queue='writeQ', auto_ack=True, on_message_callback=service_request_master)
+        cursor.execute(body)
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-        channel.start_consuming()
+        return "", 200
 
-    # SLAVE LOGIC
-    if MASTER == '0':
-        print("\n\n-----SLAVE CODE RUNNING-----\n\n")
-        logging.debug('Slave running')
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
+    print("Connection: {}".format(connection))
+    channel = connection.channel()
+    logging.info('RabbitMQ connection established')
 
-        # --------------------------------------- ADD TO ZOOKEEPER ---------------------------------------
+    channel.queue_declare(queue='writeQ', exclusive=True)
+    #declare sync queue
+    channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
 
-        file = open('pid.txt', 'r')
-        pid = file.readlines()
-        pid = int(pid[0])
-        file.close()
-        val = "slave"
-        data = val.encode('utf-8')
-        zk.create('/root/'+str(pid), ephemeral = True, value = data)
-        logging.info('Slave added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
-        data, stat = zk.get('/root')
-        children = zk.get_children('/root')
-        print("value at /root: {}".format(data.decode('utf-8')))
-        print("children of orchestrator: {}".format(children))
+    print(' [*] Waiting for messages. To exit press CTRL+C')
 
-        # --------------------------------------- ZOOKEEPER LOGIC ENDS ---------------------------------------
+    channel.basic_qos(prefetch_count=1)
 
-        def sync_callback(ch, method, properties, body):
-            conn = connectDB('ride_share.db')
-            cursor = conn.cursor()                
-            body = body.decode("utf-8")
-            cursor.execute(body)
-            conn.commit()
-            cursor.close()
-            conn.close()
+    channel.basic_consume(queue='writeQ', auto_ack=True, on_message_callback=service_request_master)
 
-        def service_request_slave(ch, method, properties, body):
-                print(" [x] Received %r" % body)
-                conn = connectDB('ride_share.db')
-                cursor = conn.cursor()
-                body = body.decode("utf-8")
-                cursor.execute(body)
-                rows = cursor.fetchall()
-                cursor.close()
-                conn.close()
-                
-                if len(rows) == 0:
-                    print("returning 400 error code")
-                    ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body="")
-                
-                else:
-                    print("returning 200 success code")
-                    ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body=str(rows))
+    channel.start_consuming()
+
+# --------------------------------------- SLAVE ---------------------------------------
+
+def slave(pid):
+    print("\n\n-----SLAVE CODE RUNNING-----\n\n")
+    logging.debug('Slave running')
+
+    val = "slave"
+    data = val.encode('utf-8')
+    zk.set('/root/'+str(pid), value = data)
+
+    def sync_callback(ch, method, properties, body):
+        conn = connectDB('ride_share.db')
+        cursor = conn.cursor()                
+        body = body.decode("utf-8")
+        cursor.execute(body)
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def service_request_slave(ch, method, properties, body):
+        print(" [x] Received %r" % body)
+        conn = connectDB('ride_share.db')
+        cursor = conn.cursor()
+        body = body.decode("utf-8")
+        cursor.execute(body)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
         
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
-        print("Connection (slave): {}".format(connection))
-        channel = connection.channel()
-        logging.info('RabbitMQ connection established')
+        if len(rows) == 0:
+            print("returning 400 error code")
+            ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body="")
+        
+        else:
+            print("returning 200 success code")
+            ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body=str(rows))
 
-        #sync first
-        #declare syn queue
-        channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
+    print("Connection (slave): {}".format(connection))
+    channel = connection.channel()
+    logging.info('RabbitMQ connection established')
 
-        result = channel.queue_declare(queue='', exclusive=True)
-        queue_name = result.method.queue
+    #sync first
+    #declare syn queue
+    channel.exchange_declare(exchange='syncQ', exchange_type='fanout')
 
-        channel.queue_bind(exchange='syncQ', queue=queue_name)
+    result = channel.queue_declare(queue='', exclusive=True)
+    queue_name = result.method.queue
 
-        #read next
-        channel.queue_declare(queue='readQ', durable=True)
+    channel.queue_bind(exchange='syncQ', queue=queue_name)
 
-        print(' [*] Waiting for messages. To exit press CTRL+C')
+    #read next
+    channel.queue_declare(queue='readQ', durable=True)
 
-        channel.basic_qos(prefetch_count=1)
+    print(' [*] Waiting for messages. To exit press CTRL+C')
 
-        channel.basic_consume(queue=queue_name, auto_ack=True, on_message_callback=sync_callback)
+    channel.basic_qos(prefetch_count=1)
 
-        channel.basic_consume(queue='readQ', on_message_callback=service_request_slave, auto_ack=True)
+    channel.basic_consume(queue=queue_name, auto_ack=True, on_message_callback=sync_callback)
 
-        channel.start_consuming()
+    channel.basic_consume(queue='readQ', on_message_callback=service_request_slave, auto_ack=True)
+
+    channel.start_consuming()
+
+# --------------------------------------- ZOOKEEPER ---------------------------------------
+
+def leaderElection():
+    workers = zk.get_children('/root')
+    workers.sort()
+
+    file = open('pid.txt', 'r')
+    pid = file.readlines()
+    pid = int(pid[0])
+    file.close()
+
+    ind = workers.index(pid)
+
+    if ind == min(workers):
+        master(pid)
+    
+    else:
+        zk.exists('/root/'+str(workers[ind - 1]))
 
 # --------------------------------------- MAIN FUNCTION ---------------------------------------
 
 if __name__ == '__main__':
-    MASTER = os.environ.get('MASTER')
     time.sleep(10)
-    exec_logic(MASTER)
+
+    file = open('pid.txt', 'r')
+    pid = file.readlines()
+    pid = int(pid[0])
+    file.close()
+
+    val = "worker"
+    data = val.encode('utf-8')
+    zk.create('/root/'+str(pid), ephemeral = True, value = data)
+    logging.info('Worker added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
+    data, stat = zk.get('/root')
+    children = zk.get_children('/root')
+    children.sort()
+    print("value at /root: {}".format(data.decode('utf-8')))
+    print("children of orchestrator: {}".format(children))
+
+    ind = children.index(pid)
+    
+    if ind == 0 and len(children) == 1:
+        master(pid)
+    
+    if ind > 0 and len(children) > 1:
+        zk.exists('/root/'+str(children[ind - 1]), watch=leaderElection)
+        slave(pid)

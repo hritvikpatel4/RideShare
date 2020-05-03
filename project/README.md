@@ -1,28 +1,21 @@
 #### Important: First create a image of the worker before running the command `docker-compose up --build`
 
-### Done
-Remove the master and slave from the docker-compose file and create a worker image and dynamically create the master and slave from the orchestrator.py using the worker image and we have 5 containers running when doing the command `docker-compose up --build`<br/>
-autoscaling - count only db read towards the count of the api requests <br/>
-kill master <br/>
-kill slave <br/>
-list workers <br/>
-clear db api in the orchestrator <br/>
-queues [readQ, writeQ, syncQ, responseQ] <br/>
-
 ### Tested
 Remove the master and slave from the docker-compose file and create a worker image and dynamically create the master and slave from the orchestrator.py using the worker image and we have 5 containers running when doing the command `docker-compose up --build`<br/>
+autoscaling - count only db read towards the count of the api requests <br/>
 kill master <br/>
 kill slave <br/>
 list workers <br/>
 clear db api in the orchestrator <br/>
-
-### TODO
-zookeeper high availability and leader election { singly linked list or the one [here](http://zookeeper.apache.org/doc/r3.5.7/recipes.html#sc_leaderElection) } <br/>
+queues [readQ, writeQ, syncQ, responseQ] <br/>
 sync data to new spawned worker (can be slave or master) using a file/log or a new persistentSyncQ <br/>
 
+### TODO
+zookeeper high availability <br/>
+
+
 ### To be tested
-queues [readQ, writeQ, syncQ, responseQ] <br/>
-autoscaling - count only db read towards the count of the api requests <br/>
+leader election <br/>
 
 
 ### Scripts
