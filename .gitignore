@@ -1,2 +1,4 @@
-project/*.py
+project/request_send.py
 project/*.db
+
+.vscode/
