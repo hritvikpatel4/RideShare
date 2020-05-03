@@ -53,7 +53,7 @@ def spawnContainer(run_type):
 	else:
 		container = client.containers.run('worker', detach = True, environment = ["MASTER="+str(run_type)], network = "orchestrator_default")
 	
-	time.sleep(5)
+	time.sleep(10)
 	process = container.top()
 
 	pid = process['Processes'][0][1]
@@ -87,16 +87,13 @@ def resetHttpCount():
 
 # Function to increment the requests count
 def incrementHttpCount():
-	global timer
-	if not timer:
-		print("trigger")
-		fn()
-		conn = connect('counter.db')
-		cursor = conn.cursor()
-		cursor.execute("UPDATE counter SET count = count + 1;")
-		conn.commit()
-		cursor.close()
-		conn.close()
+	fn()
+	conn = connect('counter.db')
+	cursor = conn.cursor()
+	cursor.execute("UPDATE counter SET count = count + 1;")
+	conn.commit()
+	cursor.close()
+	conn.close()
 
 # Function to return the requests count
 def getHttpCount():
@@ -149,6 +146,7 @@ def timerfn():
 def fn():
 	global timer
 	if not timer:
+		print("triggered")
 		timer = threading.Thread(target=timerfn)
 		timer.start()
 		logging.info('Timer initialized for auto scaling')

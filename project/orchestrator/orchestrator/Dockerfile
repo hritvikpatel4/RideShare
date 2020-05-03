@@ -11,4 +11,4 @@ COPY . .
 EXPOSE 80
 
 RUN pip install -r requirements.txt
-CMD ["sh", "-c", "sleep 7.5 && python orchestrator.py"]
+CMD ["sh", "-c", "sleep 15 && python orchestrator.py"]

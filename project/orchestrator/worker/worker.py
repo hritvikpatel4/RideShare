@@ -158,7 +158,7 @@ def exec_logic(MASTER):
         channel.queue_bind(exchange='syncQ', queue=queue_name)
 
         #read next
-        channel.queue_declare(queue='readQ', exclusive=True)
+        channel.queue_declare(queue='readQ', durable=True)
 
         print(' [*] Waiting for messages. To exit press CTRL+C')
 
@@ -174,5 +174,5 @@ def exec_logic(MASTER):
 
 if __name__ == '__main__':
     MASTER = os.environ.get('MASTER')
-    time.sleep(5)
+    time.sleep(10)
     exec_logic(MASTER)
