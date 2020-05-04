@@ -401,7 +401,7 @@ def list_all():
 if __name__ == '__main__':
 	spawnContainer() # initial master spawn
 	logging.debug('Initial master spawned')
-	# time.sleep(1)
+	time.sleep(2)
 	spawnContainer() # initial slave spawn
 	logging.debug('Initial slave spawned')
 	
