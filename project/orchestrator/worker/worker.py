@@ -153,13 +153,13 @@ def leaderElection():
     pid = int(pid[0])
     file.close()
 
-    ind = workers.index(pid)
+    ind = workers.index(str(pid))
 
     if ind == min(workers):
         master(pid)
     
     else:
-        zk.exists('/root/'+str(workers[ind - 1]))
+        zk.exists('/root/'+str(workers[ind - 1]), watch=leaderElection)
 
 # --------------------------------------- MAIN FUNCTION ---------------------------------------
 
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     print("value at /root: {}".format(data.decode('utf-8')))
     print("children of orchestrator: {}".format(children))
 
-    ind = children.index(pid)
+    ind = children.index(str(pid))
     
     if ind == 0 and len(children) == 1:
         master(pid)

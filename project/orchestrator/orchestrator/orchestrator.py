@@ -34,6 +34,8 @@ print("connection:", connection)
 channel = connection.channel()
 logging.info('RabbitMQ connection established')
 
+username = "hritvik"
+
 # Timer variable for the auto scaling logic
 timer = None
 
@@ -43,7 +45,6 @@ is_first_read_request = True
 # --------------------------------------- AUTO-SCALING AND SPAWNING OF CONTAINERS ---------------------------------------
 
 # Function to spawn new containers
-# TODO: ADD THE CODE TO COPY UPDATED DATA TO THE SLAVE CONTAINER'S DB
 def spawnContainer():
 	client = docker.from_env()
 	
@@ -57,8 +58,10 @@ def spawnContainer():
 	file.write(str(pid))
 	file.close()
 	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt"
+	# cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /home/{}/pid.txt".format(username)
 	os.system(cmd1)
 	cmd2 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
+	# cmd2 = "docker cp /home/{}/pid.txt {}:/worker/pid.txt".format(username, container.id)
 	os.system(cmd2)
 
 	print()
