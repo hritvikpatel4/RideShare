@@ -34,8 +34,6 @@ print("connection:", connection)
 channel = connection.channel()
 logging.info('RabbitMQ connection established')
 
-username = "hritvik"
-
 # Timer variable for the auto scaling logic
 timer = None
 
