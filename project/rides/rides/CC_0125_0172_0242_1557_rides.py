@@ -2,13 +2,10 @@ from flask import Flask, jsonify, request, make_response, redirect
 import csv, string, collections, datetime
 from sqlite3 import connect
 import requests
-import sys
-
-print(sys.version)
 
 ride_share = Flask(__name__)
 ip = "http://34.199.137.13:80"		# insert the orchestrator IP here
-cross_ip = "http://127.0.0.1:5025"	# load balancer
+cross_ip = "http://127.0.0.1:80"	# load balancer or users instance ip
 host = "0.0.0.0"
 port = 80
 
@@ -71,8 +68,6 @@ def listRides():
     source=request.args.get('source')
     destination=request.args.get('destination')
     if source and destination:
-        #now = datetime.datetime.now()
-        #cur_time = now.strftime('%Y-%m-%d %H:%M:%S')
         data = {
             "operation": "SELECT",
             "columns": "*",
@@ -91,9 +86,7 @@ def listRides():
                 row_dict={}
                 row_dict["rideId"]=row[0]
                 row_dict["username"]=row[1]
-                nts=datetime.datetime.strptime(row[2],"%Y-%m-%d %H:%M:%S")
-                nts=nts.strftime("%d-%m-%Y:%S-%M-%H")
-                row_dict["timestamp"]=nts
+                row_dict["timestamp"]=row[2]
                 final.append(row_dict)
             return jsonify(final)
 
@@ -141,10 +134,7 @@ def rideDetails(rideId):
 		d["rideId"] = str(r1[0][0])
 		d["created_by"] = r1[0][1]
 		d["users"] = []
-		date, time = str(r1[0][2]).split(" ")
-		hh, mm, ss = time.split(":")
-		yy, mo, dd = date.split("-")
-		d["timestamp"] = "{}-{}-{}:{}-{}-{}".format(dd, mo, yy, ss, mm, hh)
+		d["timestamp"] = r1[0][2]
 		d["source"] = str(get_area_from_number(int(r1[0][3])))
 		d["destination"] = str(get_area_from_number(int(r1[0][4])))
 

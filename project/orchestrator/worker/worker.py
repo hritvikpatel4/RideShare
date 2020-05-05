@@ -108,11 +108,9 @@ def slave(pid):
         conn.close()
         
         if len(rows) == 0:
-            print("returning 400 error code")
             ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body="")
         
         else:
-            print("returning 200 success code")
             ch.basic_publish(exchange='', routing_key=properties.reply_to, properties=pika.BasicProperties(correlation_id = properties.correlation_id), body=str(rows))
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0))

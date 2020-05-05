@@ -1,3 +1,5 @@
+# Dockerfile for the users container
+
 FROM python
 
 ENV PYTHONUNBUFFERED 1

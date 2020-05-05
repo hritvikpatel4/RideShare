@@ -106,11 +106,11 @@ def timerfn():
 		resetHttpCount()
 		
 		res = (count // 20) + 1
-		print("Need {} slave containers now".format(res))
+		print("Need {} slave containers totally".format(res))
 		
 		client = docker.from_env()
 		num = len(client.containers.list()) - 4
-		print("We have {} slave containers now".format(num))
+		print("We have {} slave containers running currently".format(num))
 		
 		logging.info('AUTO-SCALING EXECUTION. Thread ran for 2 minutes. Got the count of requests as {}. Reset the requests count. Number of slave containers needed {}. Currently running {}.'.format(count, res, num))
 
@@ -128,11 +128,13 @@ def timerfn():
 			while y > 0:
 				spawnContainer()
 				y -= 1
+				time.sleep(0.1)
 		
 		else:
 			pass
 		
 		client.close()
+		print(res.text)
 
 # Init timer
 def fn():

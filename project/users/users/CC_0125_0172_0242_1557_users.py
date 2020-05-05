@@ -47,6 +47,7 @@ def addUser():
 		answer = make_response("", 400)
 	return answer
 
+# API 3: List all users
 @ride_share.route("/api/v1/users",methods=["GET"])
 def list_all():
 	requests.post(ip + "/api/v1/_count")
