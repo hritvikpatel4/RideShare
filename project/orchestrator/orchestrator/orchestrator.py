@@ -40,6 +40,9 @@ timer = None
 # Flag variable to check whether it is the first read db request. This is done so that we can start the timer on the first request
 is_first_read_request = True
 
+# Flag variable to check whether the kill was due to scaling down
+due_to_scale_down = False
+
 # --------------------------------------- AUTO-SCALING AND SPAWNING OF CONTAINERS ---------------------------------------
 
 # Function to spawn new containers
@@ -100,6 +103,7 @@ def getHttpCount():
 
 # Timer function which runs as a thread. It also has the implementation of the auto-scaling
 def timerfn():
+	global due_to_scale_down
 	while True:
 		time.sleep(120)
 		count = getHttpCount()
@@ -118,6 +122,7 @@ def timerfn():
 			logging.debug('Scaling down')
 			x = num - res
 			while x > 0:
+				due_to_scale_down = True
 				res = requests.post(ip + "/api/v1/crash/slave", data={})
 				x -= 1
 				time.sleep(0.1)
@@ -133,6 +138,7 @@ def timerfn():
 		else:
 			pass
 		
+		due_to_scale_down = False
 		client.close()
 		print(res.text)
 
@@ -350,12 +356,14 @@ def kill_master():
 			logging.info('Master container killed with pid: {}'.format(pid))
 			break
 	
+	spawnContainer()
 	client.close()
 	return res
 
 # API 5: API to kill a slave with the highest pid
 @ride_share.route("/api/v1/crash/slave",methods=["POST"])
 def kill_slave():
+	global due_to_scale_down
 	logging.debug('Kill Slave API invoked')
 	client = docker.from_env()
 	containers = client.containers.list()
@@ -373,6 +381,9 @@ def kill_slave():
 			logging.info('Slave container killed with pid: {}'.format(pid))
 			break
 	
+	if due_to_scale_down == False:
+		spawnContainer()
+
 	client.close()
 	return res
 
