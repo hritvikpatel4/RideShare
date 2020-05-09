@@ -59,10 +59,8 @@ def spawnContainer():
 	file.write(str(pid))
 	file.close()
 	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt"
-	# cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /home/{}/pid.txt".format(username)
 	os.system(cmd1)
 	cmd2 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
-	# cmd2 = "docker cp /home/{}/pid.txt {}:/worker/pid.txt".format(username, container.id)
 	os.system(cmd2)
 
 	print()
@@ -123,7 +121,7 @@ def timerfn():
 			x = num - res
 			while x > 0:
 				due_to_scale_down = True
-				res = requests.post(ip + "/api/v1/crash/slave", data={})
+				r = requests.post(ip + "/api/v1/crash/slave", data={})
 				x -= 1
 				time.sleep(0.1)
 		
@@ -140,7 +138,7 @@ def timerfn():
 		
 		due_to_scale_down = False
 		client.close()
-		print(res.text)
+		print(r.text)
 
 # Init timer
 def fn():
@@ -383,6 +381,7 @@ def kill_slave():
 	
 	if due_to_scale_down == False:
 		spawnContainer()
+		time.sleep(2)
 
 	client.close()
 	return res

@@ -5,11 +5,11 @@ import requests
 
 ride_share = Flask(__name__)
 ip = "http://34.199.137.13:80"		# insert the orchestrator IP here
-cross_ip = "http://127.0.0.1:80"	# load balancer or users instance ip
+cross_ip = "http://3.87.225.130:80"	# load balancer or users instance ip
 host = "0.0.0.0"
 port = 80
 
-origin = {"Origin": "52.7.189.65"} # rides ip here
+origin = {"Origin": "54.175.34.238"} # rides ip here
 
 def get_area_from_number(a):
     with open('AreaNameEnum.csv') as csv_file:
@@ -287,4 +287,4 @@ def fallback_api_v1_rides_count():
 	return jsonify({}), 405
 
 if __name__ == '__main__':
-	ride_share.run(debug=True, port=port, host=host)
+	ride_share.run(debug=True, port=port, host=host, use_reloader=False)
