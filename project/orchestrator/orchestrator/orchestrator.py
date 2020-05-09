@@ -121,7 +121,7 @@ def timerfn():
 			x = num - res
 			while x > 0:
 				due_to_scale_down = True
-				r = requests.post(ip + "/api/v1/crash/slave", data={})
+				requests.post(ip + "/api/v1/crash/slave", data={})
 				x -= 1
 				time.sleep(0.1)
 		
@@ -138,7 +138,6 @@ def timerfn():
 		
 		due_to_scale_down = False
 		client.close()
-		print(r.text)
 
 # Init timer
 def fn():
