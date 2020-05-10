@@ -181,9 +181,9 @@ if __name__ == '__main__':
 
     ind = children.index(str(pid))
     
-    if ind == 0 or len(children) == 1:
+    if ind == 0:
         master(pid)
     
-    if ind > 0 and len(children) > 1:
+    if ind > 0:
         zk.exists('/root/'+str(children[ind - 1]), watch=leaderElection)
         slave(pid)
