@@ -160,30 +160,44 @@ def leaderElection():
         zk.exists('/root/'+str(workers[ind - 1]), watch=leaderElection)
 
 # --------------------------------------- MAIN FUNCTION ---------------------------------------
+def execute(db_name, command):
+	conn = connect(db_name)
+	cursor = conn.cursor()
+	cursor.execute("PRAGMA foreign_keys = 1")
+	cursor.execute(command)
+	conn.commit()
+	cursor.close()
+	conn.close()
 
 if __name__ == '__main__':
-    time.sleep(10)
+	time.sleep(15)
 
-    file = open('pid.txt', 'r')
-    pid = file.readlines()
-    pid = int(pid[0])
-    file.close()
+	file = open('pid.txt', 'r')
+	pid = file.readlines()
+	pid = int(pid[0])
+	file.close()
 
-    val = "worker"
-    data = val.encode('utf-8')
-    zk.create('/root/'+str(pid), ephemeral = True, value = data)
-    logging.info('Worker added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
-    data, stat = zk.get('/root')
-    children = zk.get_children('/root')
-    children.sort()
-    print("value at /root: {}".format(data.decode('utf-8')))
-    print("children of orchestrator: {}".format(children))
+	f = open('comm.txt', 'r')
+	commands = f.readlines()
+	for command in commands:
+		execute('ride_share.db', command)
+	f.close()
 
-    ind = children.index(str(pid))
+	val = "worker"
+	data = val.encode('utf-8')
+	zk.create('/root/'+str(pid), ephemeral = True, value = data)
+	logging.info('Worker added to Znode with type as ephemeral and value: {}'.format(data.decode('utf-8')))
+	data, stat = zk.get('/root')
+	children = zk.get_children('/root')
+	children.sort()
+	print("value at /root: {}".format(data.decode('utf-8')))
+	print("children of orchestrator: {}".format(children))
+
+	ind = children.index(str(pid))
     
-    if ind == 0:
-        master(pid)
+	if ind == 0:
+		master(pid)
     
-    if ind > 0:
-        zk.exists('/root/'+str(children[ind - 1]), watch=leaderElection)
-        slave(pid)
+	if ind > 0:
+		zk.exists('/root/'+str(children[ind - 1]), watch=leaderElection)
+		slave(pid)

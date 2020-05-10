@@ -54,14 +54,19 @@ def spawnContainer():
 	time.sleep(10)
 	process = container.top()
 
+	cmd1 = "docker cp orchestrator:/orchestrator/comm.txt /tmp/comm.txt"
+	os.system(cmd1)
+	cmd2 = "docker cp /tmp/comm.txt {}:/worker/comm.txt".format(container.id)
+	os.system(cmd2)
+
 	pid = process['Processes'][0][1]
 	file = open('pid.txt', 'w')
 	file.write(str(pid))
 	file.close()
-	cmd1 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt"
-	os.system(cmd1)
-	cmd2 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
-	os.system(cmd2)
+	cmd3 = "docker cp orchestrator:/orchestrator/pid.txt /tmp/pid.txt"
+	os.system(cmd3)
+	cmd4 = "docker cp /tmp/pid.txt {}:/worker/pid.txt".format(container.id)
+	os.system(cmd4)
 
 	print()
 	logging.debug('Container spawned with pid: {}'.format(int(process['Processes'][0][1])))
@@ -267,6 +272,11 @@ def modifyDB():
 
 	data = request.get_json()
 	query = construct_query(data)
+
+	f = open('comm.txt', 'a+')   # write the query into the file
+	f.write(query + "\n")
+	f.close()
+
 	print("write API:", query)
 
 	# Send the query to master
