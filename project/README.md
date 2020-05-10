@@ -12,7 +12,7 @@ Now since you have been redirected from the root folder to the /project folder w
 10. `cd rides`
 11. `docker-compose up -d`
 12. `cd ../`
-If you encounter any issues about the scripts, refer to the scripts section below
+<br/> If you encounter any issues about the scripts, refer to the scripts section below
 
 ### Scripts
 Before running any script,<br/>
@@ -32,16 +32,15 @@ list workers <br/>
 clear db api in the orchestrator <br/>
 queues [readQ, writeQ, syncQ, responseQ] <br/>
 sync data to new spawned worker (can be slave or master) using a file/log or a new persistentSyncQ <br/>
+zookeeper high availability <br/>
 
 ### TODO
-<br/>
+Nothing :)<br/>
 
 ### To be tested
 leader election <br/>
-zookeeper high availability <br/>
 
 #### References
-https://docker-py.readthedocs.io/en/stable/
-https://www.rabbitmq.com/getstarted.html
-https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes
-
+https://docker-py.readthedocs.io/en/stable/ <br/>
+https://www.rabbitmq.com/getstarted.html <br/>
+https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes <br/>

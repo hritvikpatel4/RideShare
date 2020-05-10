@@ -153,7 +153,7 @@ def leaderElection():
 
     ind = workers.index(str(pid))
 
-    if ind == min(workers):
+    if str(pid) == min(workers):
         master(pid)
     
     else:
