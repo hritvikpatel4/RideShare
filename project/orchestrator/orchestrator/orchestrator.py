@@ -386,7 +386,7 @@ def kill_slave():
 	return res
 
 # API 6: API to list all the worker containers
-@ride_share.route("/api/v1/worker/list",methods=["POST"])
+@ride_share.route("/api/v1/worker/list",methods=["GET"])
 def list_all():
 	logging.debug('List Workers API invoked')
 	client = docker.from_env()
