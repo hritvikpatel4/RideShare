@@ -1,18 +1,18 @@
 # RideShare
+![GitHub language count](https://img.shields.io/github/languages/count/hritvikpatel4/RideShare?style=plastic)
+![GitHub](https://img.shields.io/github/license/hritvikpatel4/RideShare?style=plastic)
+![GitHub last commit](https://img.shields.io/github/last-commit/hritvikpatel4/RideShare?style=plastic)
+![GitHub followers](https://img.shields.io/github/followers/hritvikpatel4?style=social)
+<br/>
 A distributed, fault-tolerant REST API based microservice which lets users book rides, list the upcoming rides, register/unregister themselves to the platform, delete rides, join rides.
 <br/><br/>
-Technologies used: Flask, Docker, Zookeeper, RabbitMQ
 
-### This zip contains the code for assignments and the project.
-To run the project, go to the project/ folder and see the README in that folder
-To run the assignments, go to the respective assignment folders and run.
-1. Assignment 1 -> go to a1/ folder
-2. Assignment 2 -> go to a2_sqlite/ folder
-3. Assignment 3 -> go to a3/ folder
-
-#### Misc details
-##### A2 Submission id is 2153
-##### A3 Submission id is 1192
+### Setup
+```
+1) Clone the repository.
+2) Go to the project folder.
+3) Follow the README to get started with the project.
+```
 
 #### Any issues? Mail me `hritvik.patel4@gmail.com`
-#### Team name: CC_0125_0172_0242_1557
+##### Team name: CC_0125_0172_0242_1557
