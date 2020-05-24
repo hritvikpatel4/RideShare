@@ -1,17 +1,19 @@
 ### How to run the project?
 Now since you have been redirected from the root folder to the /project folder which is here, do the following steps:
-1. `./docker_clean.sh`
-2. `cd orchestrator/worker`
-3. `./create_image.sh`
-4. `cd ../`
-5. `docker-compose up -d`
-6. `cd ../`
-7. `cd users`
-8. `docker-compose up -d`
-9. `cd ../`
-10. `cd rides`
-11. `docker-compose up -d`
-12. `cd ../`
+```
+1. ./docker_clean.sh
+2. cd orchestrator/worker
+3. ./create_image.sh
+4. cd ../
+5. docker-compose up -d
+6. cd ../
+7. cd users
+8. docker-compose up -d
+9. cd ../
+10. cd rides
+11. docker-compose up -d
+12. cd ../
+```
 <br/> If you encounter any issues about the scripts, refer to the scripts section below
 
 ### Scripts
