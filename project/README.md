@@ -23,23 +23,6 @@ Use `docker_clean.sh` to remove all containers, images, volumes. Find the script
 Use `docker_list.sh` to list the containers, images, volumes. Find the script in the present directory of this README <br/>
 Use `create_image.sh` to create a worker image. This script is in the `orchestrator/worker/` folder <br/>
 
-### Tested
-Remove the master and slave from the docker-compose file and create a worker image and dynamically create the master and slave from the orchestrator.py using the worker image and we have 5 containers running when doing the command `docker-compose up --build`<br/>
-autoscaling - count only db read towards the count of the api requests <br/>
-kill master <br/>
-kill slave <br/>
-list workers <br/>
-clear db api in the orchestrator <br/>
-queues [readQ, writeQ, syncQ, responseQ] <br/>
-sync data to new spawned worker (can be slave or master) using a file/log or a new persistentSyncQ <br/>
-zookeeper high availability <br/>
-
-### TODO
-Nothing :)<br/>
-
-### To be tested
-leader election <br/>
-
 #### References
 https://docker-py.readthedocs.io/en/stable/ <br/>
 https://www.rabbitmq.com/getstarted.html <br/>
